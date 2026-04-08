@@ -145,18 +145,22 @@ export default function PlaygroundPage() {
       const walletClient = await getConnectorClient(config);
 
       const isSession = challenge.intent === "session";
-      const clientOpts = {
-        getClient: () => walletClient,
-        mode: "push" as const,
-      };
 
-      const mppx = Mppx.create({
-        methods: [
-          tempo(clientOpts),
-          ...(isSession ? [session(clientOpts)] : []),
-        ],
-        polyfill: false,
-      });
+      const methods = isSession
+        ? [
+            session({
+              getClient: () => walletClient,
+              deposit: "1",
+            }),
+          ]
+        : [
+            tempo({
+              getClient: () => walletClient,
+              mode: "push",
+            }),
+          ];
+
+      const mppx = Mppx.create({ methods, polyfill: false });
 
       const { Challenge: ChallengeModule } = await import("mppx");
       const wwwAuthHeader =
@@ -215,11 +219,25 @@ export default function PlaygroundPage() {
       setSelectedStep("receipt");
     } catch (err) {
       updateStep("pay", { status: "error" });
-      setError(err instanceof Error ? err.message : "Payment failed");
+      const msg = err instanceof Error ? err.message : "Payment failed";
+      // Trim verbose viem details
+      const short = msg.split("Request Arguments:")[0]?.trim() || msg;
+      setError(short);
     } finally {
       setIsPaying(false);
     }
-  }, [challenge, isConnected, address, url, method, reqBody, updateStep, rawWwwAuthenticate, config]);
+  }, [
+    challenge,
+    isConnected,
+    address,
+    url,
+    method,
+    reqBody,
+    updateStep,
+    rawWwwAuthenticate,
+    config,
+    network,
+  ]);
 
   const selectedStepData = steps.find((s) => s.id === selectedStep);
 
@@ -320,7 +338,7 @@ export default function PlaygroundPage() {
         )}
 
         {error && (
-          <div className="px-4 py-3 rounded-lg border border-error/30 bg-error/5 text-error text-sm">
+          <div className="px-4 py-3 rounded-lg border border-error/30 bg-error/5 text-error text-sm max-h-32 overflow-auto break-all whitespace-pre-wrap">
             {error}
           </div>
         )}
