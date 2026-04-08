@@ -1,4 +1,3 @@
-export const runtime = "edge";
 import { NextRequest, NextResponse } from "next/server";
 
 function parseWwwAuthenticate(header: string): Record<string, string> | null {
