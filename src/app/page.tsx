@@ -14,7 +14,7 @@ export default function PlaygroundPage() {
     <div className="flex flex-col min-h-screen">
       <Header network={pg.network} onNetworkChange={pg.setNetwork} />
 
-      <main className="flex-1 px-8 py-8 max-w-6xl mx-auto w-full space-y-8">
+      <main className="flex-1 px-8 py-8 pt-24 max-w-6xl mx-auto w-full space-y-8">
         <ProbeInput
           url={pg.url}
           onUrlChange={pg.setUrl}
