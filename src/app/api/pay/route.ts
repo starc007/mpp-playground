@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     const requestHeaders: Record<string, string> = {
       "User-Agent": "mpp-playground/1.0",
       Accept: "application/json",
-      Authorization: `Payment ${credential}`,
+      Authorization: credential.startsWith("Payment ") ? credential : `Payment ${credential}`,
     };
 
     const response = await fetch(targetUrl, {
