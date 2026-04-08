@@ -8,14 +8,8 @@ export const EXAMPLE_ENDPOINTS = [
     method: "GET" as HttpMethod,
   },
   {
-    label: "Parallel",
-    url: "https://parallelmpp.dev",
-    description: "Search",
-    method: "POST" as HttpMethod,
-  },
-  {
     label: "OpenAI",
-    url: "https://openai.mpp.tempo.xyz/v1/chat/completions",
+    url: "https://openai.mpp.tempo.xyz/v1/responses",
     description: "AI",
     method: "POST" as HttpMethod,
   },
