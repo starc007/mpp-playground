@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useAccount } from "wagmi";
 import { useNetwork } from "@/components/providers";
 import type { HttpMethod } from "@/components/probe-input";
@@ -30,6 +30,54 @@ export function usePlayground() {
     null,
   );
   const [error, setError] = useState<string | null>(null);
+  const autoProbeRef = useRef(false);
+
+  // Hydrate from query params on mount
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const urlParam = params.get("url");
+    const methodParam = params.get("method") as HttpMethod | null;
+    const bodyParam = params.get("body");
+    const networkParam = params.get("network") as Network | null;
+
+    if (urlParam) setUrl(urlParam);
+    if (methodParam) setMethod(methodParam);
+    if (bodyParam) setReqBody(bodyParam);
+    if (networkParam === "mainnet" || networkParam === "testnet") {
+      setNetwork(networkParam);
+    }
+
+    // Mark for auto-probe after state settles
+    if (urlParam) autoProbeRef.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Sync state → URL (without triggering navigation)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams();
+    if (url) params.set("url", url);
+    if (method !== "GET") params.set("method", method);
+    if (reqBody) params.set("body", reqBody);
+    if (network !== "testnet") params.set("network", network);
+
+    const qs = params.toString();
+    const newUrl = qs
+      ? `${window.location.pathname}?${qs}`
+      : window.location.pathname;
+    window.history.replaceState(null, "", newUrl);
+  }, [url, method, reqBody, network]);
+
+  const shareableUrl = (() => {
+    if (typeof window === "undefined" || !url) return null;
+    const params = new URLSearchParams();
+    params.set("url", url);
+    if (method !== "GET") params.set("method", method);
+    if (reqBody) params.set("body", reqBody);
+    if (network !== "testnet") params.set("network", network);
+    return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+  })();
 
   const updateStep = useCallback((id: StepId, update: Partial<Step>) => {
     setSteps((prev) =>

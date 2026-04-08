@@ -62,10 +62,10 @@ export async function POST(req: NextRequest) {
           let request: Record<string, unknown> = {};
           if (params.request) {
             try {
-              const decoded = Buffer.from(params.request, "base64").toString(
-                "utf-8",
-              );
-              request = JSON.parse(decoded);
+              const normalized = params.request
+                .replace(/-/g, "+")
+                .replace(/_/g, "/");
+              request = JSON.parse(atob(normalized));
             } catch {
               request = { raw: params.request };
             }

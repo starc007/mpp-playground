@@ -3,7 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 function decodeReceipt(encoded: string) {
   try {
-    const json = Buffer.from(encoded, "base64").toString("utf-8");
+    // base64url → base64
+    const normalized = encoded.replace(/-/g, "+").replace(/_/g, "/");
+    const json = atob(normalized);
     return JSON.parse(json);
   } catch {
     return { raw: encoded };
