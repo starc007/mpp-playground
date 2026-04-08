@@ -139,17 +139,21 @@ export default function PlaygroundPage() {
     updateStep("pay", { status: "active" });
 
     try {
-      const { Mppx, tempo } = await import("mppx/client");
+      const { Mppx, tempo, session } = await import("mppx/client");
       const { getConnectorClient } = await import("wagmi/actions");
 
       const walletClient = await getConnectorClient(config);
 
+      const isSession = challenge.intent === "session";
+      const clientOpts = {
+        getClient: () => walletClient,
+        mode: "push" as const,
+      };
+
       const mppx = Mppx.create({
         methods: [
-          tempo({
-            getClient: () => walletClient,
-            mode: "push",
-          }),
+          tempo(clientOpts),
+          ...(isSession ? [session(clientOpts)] : []),
         ],
         polyfill: false,
       });
@@ -218,9 +222,23 @@ export default function PlaygroundPage() {
   }, [challenge, isConnected, address, url, method, reqBody, updateStep, rawWwwAuthenticate, config]);
 
   const selectedStepData = steps.find((s) => s.id === selectedStep);
+
+  const challengeChainId = challenge?.request?.methodDetails
+    ? (challenge.request.methodDetails as Record<string, unknown>)?.chainId
+    : undefined;
+  const expectedNetwork =
+    challengeChainId === 4217
+      ? "mainnet"
+      : challengeChainId === 42431
+        ? "testnet"
+        : undefined;
+  const networkMismatch =
+    expectedNetwork !== undefined && expectedNetwork !== network;
+
   const showPayButton =
     challenge &&
     isConnected &&
+    !networkMismatch &&
     steps.find((s) => s.id === "challenge")?.status === "complete" &&
     steps.find((s) => s.id === "pay")?.status === "idle";
 
@@ -270,6 +288,24 @@ export default function PlaygroundPage() {
             </div>
           ))}
         </div>
+
+        {networkMismatch &&
+          challenge &&
+          steps.find((s) => s.id === "challenge")?.status === "complete" && (
+            <div className="flex flex-col items-center gap-2">
+              <div className="px-4 py-3 rounded-lg border border-step-challenge/30 bg-step-challenge/5 text-step-challenge text-sm text-center">
+                This service requires{" "}
+                <span className="font-medium">{expectedNetwork}</span> (chain{" "}
+                {String(challengeChainId)}). Switch your network to pay.
+              </div>
+              <button
+                onClick={() => setNetwork(expectedNetwork!)}
+                className="text-xs text-accent hover:underline"
+              >
+                switch to {expectedNetwork}
+              </button>
+            </div>
+          )}
 
         {showPayButton && (
           <div className="flex justify-center">
