@@ -36,17 +36,18 @@ async function handle(req: NextRequest, id: string) {
   }
 
   const mppx = Mppx.create({
+    secretKey:
+      process.env.MPP_SECRET_KEY ??
+      "mpp-playground-default-dev-secret-key-not-for-production",
     methods: [
-      tempo({
+      tempo.charge({
         currency: config.currency as `0x${string}`,
         recipient: config.recipient as `0x${string}`,
         testnet: config.testnet ?? true,
-        html: config.text || config.theme
-          ? {
-              text: config.text,
-              theme: config.theme,
-            }
-          : true,
+        html:
+          config.text || config.theme
+            ? { text: config.text, theme: config.theme }
+            : true,
       }),
     ],
   });
