@@ -29,8 +29,8 @@ export function DetectionBadge({ info }: DetectionBadgeProps) {
       {info.intent && (
         <Badge label="intent" value={info.intent} />
       )}
-      {info.amount && info.currency && (
-        <Badge label="amount" value={`${info.amount} ${info.currency}`} />
+      {info.amount && (
+        <Badge label="amount" value={formatAmount(info.amount)} />
       )}
       {info.recipient && (
         <a
@@ -44,6 +44,16 @@ export function DetectionBadge({ info }: DetectionBadgeProps) {
       )}
     </div>
   );
+}
+
+function formatAmount(raw: string): string {
+  const num = Number(raw);
+  if (isNaN(num)) return raw;
+  // TIP-20 stablecoins use 6 decimals
+  const usd = num / 1e6;
+  if (usd === 0) return "$0.00";
+  if (usd < 0.01) return `$${usd.toFixed(6)}`;
+  return `$${usd.toFixed(2)}`;
 }
 
 function Badge({ label, value }: { label: string; value: string }) {
