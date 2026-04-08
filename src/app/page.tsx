@@ -6,6 +6,8 @@ import { StepFlow } from "@/components/step-flow";
 import { Inspector } from "@/components/inspector";
 import { DetectionBadge } from "@/components/detection-badge";
 import { Header, Footer } from "@/components/layout";
+import { ShareButton } from "@/components/share-button";
+import { PaymentLinkPreview } from "@/components/payment-link-preview";
 
 export default function PlaygroundPage() {
   const pg = usePlayground();
@@ -25,6 +27,12 @@ export default function PlaygroundPage() {
           onProbe={pg.handleProbe}
           isProbing={pg.isProbing}
         />
+
+        {pg.url && (
+          <div className="flex justify-end -mt-4">
+            <ShareButton url={pg.shareableUrl} />
+          </div>
+        )}
 
         <StepFlow
           steps={pg.steps}
@@ -76,6 +84,10 @@ export default function PlaygroundPage() {
             stepId={pg.selectedStep}
             data={pg.selectedStepData.data}
           />
+        )}
+
+        {pg.detection?.mppEnabled && pg.url && (
+          <PaymentLinkPreview url={pg.url} method={pg.method} />
         )}
       </main>
 

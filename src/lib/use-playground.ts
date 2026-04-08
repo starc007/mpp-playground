@@ -174,6 +174,14 @@ export function usePlayground() {
     }
   }, [url, method, reqBody, resetFlow, updateStep]);
 
+  // Auto-probe after URL is hydrated from query params
+  useEffect(() => {
+    if (autoProbeRef.current && url) {
+      autoProbeRef.current = false;
+      handleProbe();
+    }
+  }, [url, handleProbe]);
+
   const handlePay = useCallback(async () => {
     if (!challenge || !isConnected || !address) return;
 
@@ -327,6 +335,7 @@ export function usePlayground() {
     challengeChainId,
 
     // Actions
+    shareableUrl,
     handleProbe,
     handlePay,
   };
