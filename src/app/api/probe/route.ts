@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 
-/**
- * Parse RFC auth-params from WWW-Authenticate header.
- * Format: Payment id="...", realm="...", method="...", intent="...", request="base64..."
- */
 function parseWwwAuthenticate(header: string): Record<string, string> | null {
   const match = header.match(/^Payment\s+(.+)$/i);
   if (!match?.[1]) return null;
@@ -53,7 +49,6 @@ export async function POST(req: NextRequest) {
       if (wwwAuth) {
         const params = parseWwwAuthenticate(wwwAuth);
         if (params) {
-          // Decode base64 request field to JSON
           let request: Record<string, unknown> = {};
           if (params.request) {
             try {
@@ -62,7 +57,6 @@ export async function POST(req: NextRequest) {
               );
               request = JSON.parse(decoded);
             } catch {
-              // keep raw
               request = { raw: params.request };
             }
           }

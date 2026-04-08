@@ -7,16 +7,9 @@ import { ProbeInput } from "@/components/probe-input";
 import { StepBadge, StepConnector } from "@/components/step-badge";
 import { Inspector } from "@/components/inspector";
 import { DetectionBadge } from "@/components/detection-badge";
-import { CodeGenerator } from "@/components/code-generator";
-import { CurlPanel } from "@/components/curl-panel";
-import type {
-  Step,
-  StepId,
-  ProbeResult,
-  PayResult,
-  DetectionInfo,
-  ChallengeData,
-} from "@/lib/types";
+import { NetworkSelector } from "@/components/network-selector";
+import { useNetwork } from "@/components/providers";
+import type { Step, StepId, DetectionInfo, ChallengeData } from "@/lib/types";
 
 const INITIAL_STEPS: Step[] = [
   { id: "request", label: "Request", status: "idle" },
@@ -28,6 +21,7 @@ const INITIAL_STEPS: Step[] = [
 
 export default function PlaygroundPage() {
   const { address, isConnected } = useAccount();
+  const { network, setNetwork, config } = useNetwork();
   const [url, setUrl] = useState("");
   const [steps, setSteps] = useState<Step[]>(INITIAL_STEPS);
   const [selectedStep, setSelectedStep] = useState<StepId | null>(null);
@@ -35,8 +29,9 @@ export default function PlaygroundPage() {
   const [isPaying, setIsPaying] = useState(false);
   const [detection, setDetection] = useState<DetectionInfo | null>(null);
   const [challenge, setChallenge] = useState<ChallengeData | null>(null);
-  const [rawWwwAuthenticate, setRawWwwAuthenticate] = useState<string | null>(null);
-  const [probeResult, setProbeResult] = useState<ProbeResult | null>(null);
+  const [rawWwwAuthenticate, setRawWwwAuthenticate] = useState<string | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
 
   const updateStep = useCallback((id: StepId, update: Partial<Step>) => {
@@ -51,7 +46,6 @@ export default function PlaygroundPage() {
     setDetection(null);
     setChallenge(null);
     setRawWwwAuthenticate(null);
-    setProbeResult(null);
     setError(null);
   }, []);
 
@@ -62,7 +56,6 @@ export default function PlaygroundPage() {
     setIsProbing(true);
     setError(null);
 
-    // Step 1: Request
     updateStep("request", {
       status: "active",
       data: {
@@ -70,7 +63,6 @@ export default function PlaygroundPage() {
           "User-Agent": "mpp-playground/1.0",
           Accept: "application/json",
         },
-        statusCode: undefined,
       },
     });
 
@@ -81,17 +73,12 @@ export default function PlaygroundPage() {
         body: JSON.stringify({ url }),
       });
 
-      const result: ProbeResult = await res.json();
+      const result = await res.json();
 
       if (!res.ok) {
-        throw new Error(
-          (result as unknown as { error: string }).error || "Probe failed",
-        );
+        throw new Error(result.error || "Probe failed");
       }
 
-      setProbeResult(result);
-
-      // Complete request step
       updateStep("request", {
         status: "complete",
         data: {
@@ -103,7 +90,6 @@ export default function PlaygroundPage() {
       });
 
       if (result.mppEnabled && result.challenge) {
-        // Step 2: Challenge
         setChallenge(result.challenge);
         setRawWwwAuthenticate(result.rawWwwAuthenticate ?? null);
         updateStep("challenge", {
@@ -142,34 +128,31 @@ export default function PlaygroundPage() {
 
     setIsPaying(true);
     setError(null);
-
-    // Step 3: Pay
     updateStep("pay", { status: "active" });
 
     try {
-      // Create credential using mppx client
       const { Mppx, tempo } = await import("mppx/client");
       const { getConnectorClient } = await import("wagmi/actions");
-      const { config } = await import("@/lib/wagmi");
 
       const walletClient = await getConnectorClient(config);
-      const account = walletClient.account;
 
       const mppx = Mppx.create({
-        methods: [tempo({ account })],
+        methods: [
+          tempo({
+            getClient: () => walletClient,
+            mode: "push",
+          }),
+        ],
         polyfill: false,
       });
 
-      // Reconstruct 402 response using the raw WWW-Authenticate header from probe
       const { Challenge: ChallengeModule } = await import("mppx");
       const wwwAuthHeader =
         rawWwwAuthenticate ?? ChallengeModule.serialize(challenge);
 
       const fakeResponse = new Response(null, {
         status: 402,
-        headers: {
-          "WWW-Authenticate": wwwAuthHeader,
-        },
+        headers: { "WWW-Authenticate": wwwAuthHeader },
       });
 
       const credential = await mppx.createCredential(fakeResponse);
@@ -181,7 +164,7 @@ export default function PlaygroundPage() {
         },
       });
 
-      // Step 4: Retry
+      // Step 4: Retry via server proxy
       updateStep("retry", { status: "active" });
 
       const payRes = await fetch("/api/pay", {
@@ -190,7 +173,7 @@ export default function PlaygroundPage() {
         body: JSON.stringify({ url, credential }),
       });
 
-      const payResult: PayResult = await payRes.json();
+      const payResult = await payRes.json();
 
       updateStep("retry", {
         status: "complete",
@@ -202,35 +185,22 @@ export default function PlaygroundPage() {
         },
       });
 
-      // Step 5: Receipt
-      if (payResult.receipt) {
-        updateStep("receipt", {
-          status: "complete",
-          data: {
-            responseHeaders: payResult.responseHeaders,
-            body: payResult.receipt,
-            statusCode: payResult.statusCode,
-          },
-        });
-        setSelectedStep("receipt");
-      } else {
-        updateStep("receipt", {
-          status: "complete",
-          data: {
-            statusCode: payResult.statusCode,
-            body: payResult.body,
-            responseHeaders: payResult.responseHeaders,
-          },
-        });
-        setSelectedStep("retry");
-      }
+      updateStep("receipt", {
+        status: "complete",
+        data: {
+          responseHeaders: payResult.responseHeaders,
+          body: payResult.receipt ?? payResult.body,
+          statusCode: payResult.statusCode,
+        },
+      });
+      setSelectedStep("receipt");
     } catch (err) {
       updateStep("pay", { status: "error" });
       setError(err instanceof Error ? err.message : "Payment failed");
     } finally {
       setIsPaying(false);
     }
-  }, [challenge, isConnected, address, url, updateStep, rawWwwAuthenticate]);
+  }, [challenge, isConnected, address, url, updateStep, rawWwwAuthenticate, config]);
 
   const selectedStepData = steps.find((s) => s.id === selectedStep);
   const showPayButton =
@@ -241,23 +211,18 @@ export default function PlaygroundPage() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Header */}
       <header className="flex items-center justify-between px-8 py-5 border-b border-border">
         <div className="flex items-center gap-3">
           <div className="w-2 h-2 rounded-full bg-accent" />
           <h1 className="text-sm font-semibold text-text tracking-wide uppercase">
             MPP Playground
           </h1>
-          <span className="text-[10px] text-text-dim border border-border rounded px-1.5 py-0.5">
-            testnet
-          </span>
+          <NetworkSelector network={network} onChange={setNetwork} />
         </div>
         <WalletBar />
       </header>
 
-      {/* Main content */}
       <main className="flex-1 px-8 py-8 max-w-6xl mx-auto w-full space-y-8">
-        {/* URL Input */}
         <ProbeInput
           url={url}
           onUrlChange={setUrl}
@@ -265,7 +230,6 @@ export default function PlaygroundPage() {
           isProbing={isProbing}
         />
 
-        {/* Step Flow */}
         <div className="flex items-center justify-center gap-0 py-4 overflow-x-auto">
           {steps.map((step, i) => (
             <div key={step.id} className="flex items-center">
@@ -288,7 +252,6 @@ export default function PlaygroundPage() {
           ))}
         </div>
 
-        {/* Pay button */}
         {showPayButton && (
           <div className="flex justify-center">
             <button
@@ -301,31 +264,19 @@ export default function PlaygroundPage() {
           </div>
         )}
 
-        {/* Error */}
         {error && (
           <div className="px-4 py-3 rounded-lg border border-error/30 bg-error/5 text-error text-sm">
             {error}
           </div>
         )}
 
-        {/* Detection Badge */}
         {detection && <DetectionBadge info={detection} />}
 
-        {/* Inspector */}
         {selectedStep && selectedStepData?.data && (
           <Inspector stepId={selectedStep} data={selectedStepData.data} />
         )}
-
-        {/* Code Generator & Curl Panel */}
-        {probeResult?.mppEnabled && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <CodeGenerator url={url} challenge={challenge ?? undefined} />
-            <CurlPanel url={url} />
-          </div>
-        )}
       </main>
 
-      {/* Footer */}
       <footer className="px-6 py-3 border-t border-border">
         <div className="flex items-center justify-between text-xs text-text-dim">
           <span>

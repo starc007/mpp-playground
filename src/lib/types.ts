@@ -1,3 +1,5 @@
+export type Network = "testnet" | "mainnet";
+
 export type StepId = "request" | "challenge" | "pay" | "retry" | "receipt";
 
 export type StepStatus = "idle" | "active" | "complete" | "error";
@@ -16,16 +18,6 @@ export interface StepData {
   statusCode?: number;
 }
 
-export interface ProbeResult {
-  mppEnabled: boolean;
-  statusCode: number;
-  challenge?: ChallengeData;
-  requestHeaders: Record<string, string>;
-  responseHeaders: Record<string, string>;
-  body?: unknown;
-  rawWwwAuthenticate?: string;
-}
-
 export interface ChallengeData {
   id: string;
   realm: string;
@@ -34,22 +26,6 @@ export interface ChallengeData {
   request: Record<string, unknown>;
   description?: string;
   expires?: string;
-}
-
-export interface PayResult {
-  statusCode: number;
-  requestHeaders: Record<string, string>;
-  responseHeaders: Record<string, string>;
-  body?: unknown;
-  receipt?: ReceiptData;
-}
-
-export interface ReceiptData {
-  method: string;
-  reference: string;
-  status: string;
-  timestamp: string;
-  externalId?: string;
 }
 
 export interface DetectionInfo {

@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Receipt } from "mppx";
+
+function decodeReceipt(encoded: string) {
+  try {
+    const json = Buffer.from(encoded, "base64").toString("utf-8");
+    return JSON.parse(json);
+  } catch {
+    return { raw: encoded };
+  }
+}
 
 export async function POST(req: NextRequest) {
   const { url, credential } = await req.json();
@@ -7,7 +15,7 @@ export async function POST(req: NextRequest) {
   if (!url || !credential) {
     return NextResponse.json(
       { error: "URL and credential are required" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -34,12 +42,7 @@ export async function POST(req: NextRequest) {
     let receipt = null;
     const receiptHeader = response.headers.get("payment-receipt");
     if (receiptHeader) {
-      try {
-        receipt = Receipt.deserialize(receiptHeader);
-      } catch {
-        // Return raw if deserialization fails
-        receipt = { raw: receiptHeader };
-      }
+      receipt = decodeReceipt(receiptHeader);
     }
 
     let body = null;
@@ -65,7 +68,7 @@ export async function POST(req: NextRequest) {
       {
         error: `Failed to pay: ${error instanceof Error ? error.message : "Unknown error"}`,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
