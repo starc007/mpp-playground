@@ -8,6 +8,7 @@ import { DetectionBadge } from "@/components/detection-badge";
 import { Header, Footer } from "@/components/layout";
 import { ShareButton } from "@/components/share-button";
 import { PaymentLinkPreview } from "@/components/payment-link-preview";
+import { NavTabs } from "@/components/nav-tabs";
 
 export default function PlaygroundPage() {
   const pg = usePlayground();
@@ -17,6 +18,8 @@ export default function PlaygroundPage() {
       <Header network={pg.network} onNetworkChange={pg.setNetwork} />
 
       <main className="flex-1 px-8 py-8 pt-24 max-w-6xl mx-auto w-full space-y-8">
+        <NavTabs />
+
         <ProbeInput
           url={pg.url}
           onUrlChange={pg.setUrl}
