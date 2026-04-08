@@ -23,6 +23,7 @@ export interface ProbeResult {
   requestHeaders: Record<string, string>;
   responseHeaders: Record<string, string>;
   body?: unknown;
+  rawWwwAuthenticate?: string;
 }
 
 export interface ChallengeData {

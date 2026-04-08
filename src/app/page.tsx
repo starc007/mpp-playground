@@ -35,21 +35,22 @@ export default function PlaygroundPage() {
   const [isPaying, setIsPaying] = useState(false);
   const [detection, setDetection] = useState<DetectionInfo | null>(null);
   const [challenge, setChallenge] = useState<ChallengeData | null>(null);
+  const [rawWwwAuthenticate, setRawWwwAuthenticate] = useState<string | null>(null);
   const [probeResult, setProbeResult] = useState<ProbeResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const updateStep = useCallback(
-    (id: StepId, update: Partial<Step>) => {
-      setSteps((prev) => prev.map((s) => (s.id === id ? { ...s, ...update } : s)));
-    },
-    []
-  );
+  const updateStep = useCallback((id: StepId, update: Partial<Step>) => {
+    setSteps((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, ...update } : s)),
+    );
+  }, []);
 
   const resetFlow = useCallback(() => {
     setSteps(INITIAL_STEPS);
     setSelectedStep(null);
     setDetection(null);
     setChallenge(null);
+    setRawWwwAuthenticate(null);
     setProbeResult(null);
     setError(null);
   }, []);
@@ -83,7 +84,9 @@ export default function PlaygroundPage() {
       const result: ProbeResult = await res.json();
 
       if (!res.ok) {
-        throw new Error((result as unknown as { error: string }).error || "Probe failed");
+        throw new Error(
+          (result as unknown as { error: string }).error || "Probe failed",
+        );
       }
 
       setProbeResult(result);
@@ -102,6 +105,7 @@ export default function PlaygroundPage() {
       if (result.mppEnabled && result.challenge) {
         // Step 2: Challenge
         setChallenge(result.challenge);
+        setRawWwwAuthenticate(result.rawWwwAuthenticate ?? null);
         updateStep("challenge", {
           status: "complete",
           data: {
@@ -156,21 +160,15 @@ export default function PlaygroundPage() {
         polyfill: false,
       });
 
-      // Build a fake 402 response to extract credential
-      const wwwAuthPayload = btoa(
-        JSON.stringify({
-          ...challenge,
-          request:
-            typeof challenge.request === "object"
-              ? btoa(JSON.stringify(challenge.request))
-              : challenge.request,
-        })
-      );
+      // Reconstruct 402 response using the raw WWW-Authenticate header from probe
+      const { Challenge: ChallengeModule } = await import("mppx");
+      const wwwAuthHeader =
+        rawWwwAuthenticate ?? ChallengeModule.serialize(challenge);
 
       const fakeResponse = new Response(null, {
         status: 402,
         headers: {
-          "WWW-Authenticate": `Payment ${wwwAuthPayload}`,
+          "WWW-Authenticate": wwwAuthHeader,
         },
       });
 
@@ -232,7 +230,7 @@ export default function PlaygroundPage() {
     } finally {
       setIsPaying(false);
     }
-  }, [challenge, isConnected, address, url, updateStep]);
+  }, [challenge, isConnected, address, url, updateStep, rawWwwAuthenticate]);
 
   const selectedStepData = steps.find((s) => s.id === selectedStep);
   const showPayButton =
@@ -244,16 +242,21 @@ export default function PlaygroundPage() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 border-b border-border">
+      <header className="flex items-center justify-between px-8 py-5 border-b border-border">
         <div className="flex items-center gap-3">
-          <h1 className="text-sm font-semibold text-text">MPP Playground</h1>
-          <span className="text-xs text-text-dim">testnet</span>
+          <div className="w-2 h-2 rounded-full bg-accent" />
+          <h1 className="text-sm font-semibold text-text tracking-wide uppercase">
+            MPP Playground
+          </h1>
+          <span className="text-[10px] text-text-dim border border-border rounded px-1.5 py-0.5">
+            testnet
+          </span>
         </div>
         <WalletBar />
       </header>
 
       {/* Main content */}
-      <main className="flex-1 px-6 py-6 max-w-6xl mx-auto w-full space-y-6">
+      <main className="flex-1 px-8 py-8 max-w-6xl mx-auto w-full space-y-8">
         {/* URL Input */}
         <ProbeInput
           url={url}
@@ -267,7 +270,9 @@ export default function PlaygroundPage() {
           {steps.map((step, i) => (
             <div key={step.id} className="flex items-center">
               {i > 0 && (
-                <StepConnector isComplete={steps[i - 1].status === "complete"} />
+                <StepConnector
+                  isComplete={steps[i - 1].status === "complete"}
+                />
               )}
               <StepBadge
                 step={step}
@@ -314,10 +319,7 @@ export default function PlaygroundPage() {
         {/* Code Generator & Curl Panel */}
         {probeResult?.mppEnabled && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <CodeGenerator
-              url={url}
-              challenge={challenge ?? undefined}
-            />
+            <CodeGenerator url={url} challenge={challenge ?? undefined} />
             <CurlPanel url={url} />
           </div>
         )}

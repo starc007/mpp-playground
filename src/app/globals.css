@@ -1,21 +1,22 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-bg: #0A0A0F;
-  --color-bg-card: #12121A;
-  --color-bg-hover: #1A1A25;
-  --color-border: #2A2A3A;
-  --color-border-active: #3A3A5A;
-  --color-text: #E0E0E8;
-  --color-text-muted: #7A7A8A;
-  --color-text-dim: #4A4A5A;
-  --color-step-request: #7C9EFF;
-  --color-step-challenge: #FFB547;
-  --color-step-pay: #A78BFA;
-  --color-step-retry: #7C9EFF;
-  --color-step-receipt: #4ADE80;
-  --color-accent: #7C9EFF;
-  --color-error: #F87171;
+  --color-bg: #151515;
+  --color-bg-card: #1c1c1c;
+  --color-bg-hover: #222222;
+  --color-bg-surface: #1a1a1a;
+  --color-border: #1e1e2a;
+  --color-border-active: #2e2e3e;
+  --color-text: #e8e8ed;
+  --color-text-muted: #8b8b9e;
+  --color-text-dim: #505064;
+  --color-step-request: #7c9eff;
+  --color-step-challenge: #ffb547;
+  --color-step-pay: #a78bfa;
+  --color-step-retry: #7c9eff;
+  --color-step-receipt: #4ade80;
+  --color-accent: #4ade80;
+  --color-error: #f87171;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 }
 

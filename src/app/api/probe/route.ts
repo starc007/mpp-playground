@@ -1,5 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Challenge } from "mppx";
+
+/**
+ * Parse RFC auth-params from WWW-Authenticate header.
+ * Format: Payment id="...", realm="...", method="...", intent="...", request="base64..."
+ */
+function parseWwwAuthenticate(header: string): Record<string, string> | null {
+  const match = header.match(/^Payment\s+(.+)$/i);
+  if (!match?.[1]) return null;
+
+  const params: Record<string, string> = {};
+  const regex = /(\w+)="([^"\\]*(?:\\.[^"\\]*)*)"/g;
+  let m;
+  while ((m = regex.exec(match[1])) !== null) {
+    params[m[1]] = m[2];
+  }
+  return params;
+}
 
 export async function POST(req: NextRequest) {
   const { url } = await req.json();
@@ -35,19 +51,31 @@ export async function POST(req: NextRequest) {
       let challenge = null;
 
       if (wwwAuth) {
-        try {
-          const match = wwwAuth.match(/Payment\s+(.+)/i);
-          if (match?.[1]) {
-            const decoded = Buffer.from(match[1], "base64").toString("utf-8");
-            challenge = JSON.parse(decoded);
-
-            if (challenge.request && typeof challenge.request === "string") {
-              const reqDecoded = Buffer.from(challenge.request, "base64").toString("utf-8");
-              challenge.request = JSON.parse(reqDecoded);
+        const params = parseWwwAuthenticate(wwwAuth);
+        if (params) {
+          // Decode base64 request field to JSON
+          let request: Record<string, unknown> = {};
+          if (params.request) {
+            try {
+              const decoded = Buffer.from(params.request, "base64").toString(
+                "utf-8",
+              );
+              request = JSON.parse(decoded);
+            } catch {
+              // keep raw
+              request = { raw: params.request };
             }
           }
-        } catch {
-          // Try parsing as structured header params
+
+          challenge = {
+            id: params.id,
+            realm: params.realm,
+            method: params.method,
+            intent: params.intent,
+            request,
+            ...(params.description && { description: params.description }),
+            ...(params.expires && { expires: params.expires }),
+          };
         }
       }
 
@@ -94,8 +122,10 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     return NextResponse.json(
-      { error: `Failed to probe: ${error instanceof Error ? error.message : "Unknown error"}` },
-      { status: 500 }
+      {
+        error: `Failed to probe: ${error instanceof Error ? error.message : "Unknown error"}`,
+      },
+      { status: 500 },
     );
   }
 }
