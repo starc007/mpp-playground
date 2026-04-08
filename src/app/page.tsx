@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 import { useAccount } from "wagmi";
 import { WalletBar } from "@/components/wallet-bar";
-import { ProbeInput } from "@/components/probe-input";
+import { ProbeInput, type HttpMethod } from "@/components/probe-input";
 import { StepBadge, StepConnector } from "@/components/step-badge";
 import { Inspector } from "@/components/inspector";
 import { DetectionBadge } from "@/components/detection-badge";
@@ -23,6 +23,8 @@ export default function PlaygroundPage() {
   const { address, isConnected } = useAccount();
   const { network, setNetwork, config } = useNetwork();
   const [url, setUrl] = useState("");
+  const [method, setMethod] = useState<HttpMethod>("GET");
+  const [reqBody, setReqBody] = useState("");
   const [steps, setSteps] = useState<Step[]>(INITIAL_STEPS);
   const [selectedStep, setSelectedStep] = useState<StepId | null>(null);
   const [isProbing, setIsProbing] = useState(false);
@@ -70,7 +72,13 @@ export default function PlaygroundPage() {
       const res = await fetch("/api/probe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({
+          url,
+          method,
+          ...(reqBody && method !== "GET" && method !== "DELETE"
+            ? { body: reqBody }
+            : {}),
+        }),
       });
 
       const result = await res.json();
@@ -121,7 +129,7 @@ export default function PlaygroundPage() {
     } finally {
       setIsProbing(false);
     }
-  }, [url, resetFlow, updateStep]);
+  }, [url, method, reqBody, resetFlow, updateStep]);
 
   const handlePay = useCallback(async () => {
     if (!challenge || !isConnected || !address) return;
@@ -170,7 +178,14 @@ export default function PlaygroundPage() {
       const payRes = await fetch("/api/pay", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, credential }),
+        body: JSON.stringify({
+          url,
+          credential,
+          method,
+          ...(reqBody && method !== "GET" && method !== "DELETE"
+            ? { body: reqBody }
+            : {}),
+        }),
       });
 
       const payResult = await payRes.json();
@@ -200,7 +215,7 @@ export default function PlaygroundPage() {
     } finally {
       setIsPaying(false);
     }
-  }, [challenge, isConnected, address, url, updateStep, rawWwwAuthenticate, config]);
+  }, [challenge, isConnected, address, url, method, reqBody, updateStep, rawWwwAuthenticate, config]);
 
   const selectedStepData = steps.find((s) => s.id === selectedStep);
   const showPayButton =
@@ -226,6 +241,10 @@ export default function PlaygroundPage() {
         <ProbeInput
           url={url}
           onUrlChange={setUrl}
+          method={method}
+          onMethodChange={setMethod}
+          body={reqBody}
+          onBodyChange={setReqBody}
           onProbe={handleProbe}
           isProbing={isProbing}
         />

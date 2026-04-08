@@ -14,7 +14,7 @@ function parseWwwAuthenticate(header: string): Record<string, string> | null {
 }
 
 export async function POST(req: NextRequest) {
-  const { url } = await req.json();
+  const { url, method = "GET", body: reqBody } = await req.json();
 
   if (!url || typeof url !== "string") {
     return NextResponse.json({ error: "URL is required" }, { status: 400 });
@@ -23,12 +23,21 @@ export async function POST(req: NextRequest) {
   try {
     const targetUrl = url.startsWith("http") ? url : `https://${url}`;
 
+    const headers: Record<string, string> = {
+      "User-Agent": "mpp-playground/1.0",
+      Accept: "application/json",
+    };
+
+    if (reqBody && method !== "GET" && method !== "DELETE") {
+      headers["Content-Type"] = "application/json";
+    }
+
     const response = await fetch(targetUrl, {
-      method: "GET",
-      headers: {
-        "User-Agent": "mpp-playground/1.0",
-        Accept: "application/json",
-      },
+      method,
+      headers,
+      ...(reqBody && method !== "GET" && method !== "DELETE"
+        ? { body: typeof reqBody === "string" ? reqBody : JSON.stringify(reqBody) }
+        : {}),
       redirect: "follow",
     });
 
@@ -37,10 +46,7 @@ export async function POST(req: NextRequest) {
       responseHeaders[key] = value;
     });
 
-    const requestHeaders: Record<string, string> = {
-      "User-Agent": "mpp-playground/1.0",
-      Accept: "application/json",
-    };
+    const requestHeaders = { ...headers };
 
     if (response.status === 402) {
       const wwwAuth = response.headers.get("www-authenticate");

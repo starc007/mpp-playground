@@ -10,7 +10,7 @@ function decodeReceipt(encoded: string) {
 }
 
 export async function POST(req: NextRequest) {
-  const { url, credential } = await req.json();
+  const { url, credential, method = "GET", body: reqBody } = await req.json();
 
   if (!url || !credential) {
     return NextResponse.json(
@@ -25,12 +25,21 @@ export async function POST(req: NextRequest) {
     const requestHeaders: Record<string, string> = {
       "User-Agent": "mpp-playground/1.0",
       Accept: "application/json",
-      Authorization: credential.startsWith("Payment ") ? credential : `Payment ${credential}`,
+      Authorization: credential.startsWith("Payment ")
+        ? credential
+        : `Payment ${credential}`,
     };
 
+    if (reqBody && method !== "GET" && method !== "DELETE") {
+      requestHeaders["Content-Type"] = "application/json";
+    }
+
     const response = await fetch(targetUrl, {
-      method: "GET",
+      method,
       headers: requestHeaders,
+      ...(reqBody && method !== "GET" && method !== "DELETE"
+        ? { body: typeof reqBody === "string" ? reqBody : JSON.stringify(reqBody) }
+        : {}),
       redirect: "follow",
     });
 
