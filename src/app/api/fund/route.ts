@@ -1,3 +1,4 @@
+export const runtime = "edge";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
@@ -18,7 +19,7 @@ export async function POST(req: NextRequest) {
       const text = await response.text();
       return NextResponse.json(
         { error: `Faucet error: ${text}` },
-        { status: response.status }
+        { status: response.status },
       );
     }
 
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest) {
       {
         error: `Faucet failed: ${error instanceof Error ? error.message : "Unknown error"}`,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

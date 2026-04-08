@@ -1,3 +1,4 @@
+export const runtime = "edge";
 import { NextRequest, NextResponse } from "next/server";
 
 function decodeReceipt(encoded: string) {
@@ -38,7 +39,10 @@ export async function POST(req: NextRequest) {
       method,
       headers: requestHeaders,
       ...(reqBody && method !== "GET" && method !== "DELETE"
-        ? { body: typeof reqBody === "string" ? reqBody : JSON.stringify(reqBody) }
+        ? {
+            body:
+              typeof reqBody === "string" ? reqBody : JSON.stringify(reqBody),
+          }
         : {}),
       redirect: "follow",
     });

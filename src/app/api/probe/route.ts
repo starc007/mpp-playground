@@ -1,3 +1,4 @@
+export const runtime = "edge";
 import { NextRequest, NextResponse } from "next/server";
 
 function parseWwwAuthenticate(header: string): Record<string, string> | null {
@@ -36,7 +37,10 @@ export async function POST(req: NextRequest) {
       method,
       headers,
       ...(reqBody && method !== "GET" && method !== "DELETE"
-        ? { body: typeof reqBody === "string" ? reqBody : JSON.stringify(reqBody) }
+        ? {
+            body:
+              typeof reqBody === "string" ? reqBody : JSON.stringify(reqBody),
+          }
         : {}),
       redirect: "follow",
     });
