@@ -7,7 +7,7 @@ import { Inspector } from "@/components/inspector";
 import { DetectionBadge } from "@/components/detection-badge";
 import { Header, Footer } from "@/components/layout";
 import { ShareButton } from "@/components/share-button";
-import { PaymentLinkPreview } from "@/components/payment-link-preview";
+
 import { NavTabs } from "@/components/nav-tabs";
 
 export default function PlaygroundPage() {
@@ -45,13 +45,12 @@ export default function PlaygroundPage() {
 
         {pg.networkMismatch &&
           pg.challenge &&
-          pg.steps.find((s) => s.id === "challenge")?.status ===
-            "complete" && (
+          pg.steps.find((s) => s.id === "challenge")?.status === "complete" && (
             <div className="flex flex-col items-center gap-2">
               <div className="px-4 py-3 rounded-lg border border-step-challenge/30 bg-step-challenge/5 text-step-challenge text-sm text-center">
                 This service requires{" "}
-                <span className="font-medium">{pg.expectedNetwork}</span>{" "}
-                (chain {String(pg.challengeChainId)}). Switch network to pay.
+                <span className="font-medium">{pg.expectedNetwork}</span> (chain{" "}
+                {String(pg.challengeChainId)}). Switch network to pay.
               </div>
               <button
                 onClick={() => pg.setNetwork(pg.expectedNetwork!)}
@@ -83,14 +82,7 @@ export default function PlaygroundPage() {
         {pg.detection && <DetectionBadge info={pg.detection} />}
 
         {pg.selectedStep && pg.selectedStepData?.data && (
-          <Inspector
-            stepId={pg.selectedStep}
-            data={pg.selectedStepData.data}
-          />
-        )}
-
-        {pg.detection?.mppEnabled && pg.url && (
-          <PaymentLinkPreview url={pg.url} method={pg.method} />
+          <Inspector stepId={pg.selectedStep} data={pg.selectedStepData.data} />
         )}
       </main>
 
