@@ -269,7 +269,6 @@ export function usePlayground() {
     updateStep,
     rawWwwAuthenticate,
     config,
-    network,
   ]);
 
   // Chain mismatch detection — compare the challenge's requested chain with
