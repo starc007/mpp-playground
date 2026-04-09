@@ -1,45 +1,48 @@
 "use client";
 
+import { useState } from "react";
 import type { StepData, StepId } from "@/lib/types";
 import { STEP_COLORS } from "@/lib/types";
 import { Card } from "@/components/ui/card";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 
 interface InspectorProps {
   stepId: StepId;
   data: StepData;
 }
 
+type Tab = "headers" | "body";
+
 export function Inspector({ stepId, data }: InspectorProps) {
+  const [tab, setTab] = useState<Tab>("headers");
   const colorClass = STEP_COLORS[stepId];
 
   return (
     <Card className="overflow-hidden p-0 gap-0">
-      <Tabs defaultValue="headers" className="gap-0">
-        <div className="flex items-center border-b border-border px-2 py-1.5">
-          <TabsList variant="line" className="h-auto">
-            <TabsTrigger value="headers" className="px-3 py-1.5 text-xs">
-              Headers
-            </TabsTrigger>
-            <TabsTrigger value="body" className="px-3 py-1.5 text-xs">
-              Body
-            </TabsTrigger>
-          </TabsList>
-          {data.statusCode !== undefined && (
-            <div className="ml-auto px-2">
-              <span className={`text-xs font-medium ${colorClass}`}>
-                {data.statusCode}
-              </span>
-            </div>
-          )}
-        </div>
+      {/* Tab bar */}
+      <div className="flex items-center border-b border-border px-2">
+        <TabButton
+          label="Headers"
+          active={tab === "headers"}
+          onClick={() => setTab("headers")}
+        />
+        <TabButton
+          label="Body"
+          active={tab === "body"}
+          onClick={() => setTab("body")}
+        />
+        {data.statusCode !== undefined && (
+          <div className="ml-auto px-3">
+            <span className={`text-xs font-medium ${colorClass}`}>
+              {data.statusCode}
+            </span>
+          </div>
+        )}
+      </div>
 
-        <TabsContent value="headers" className="p-4 overflow-auto max-h-96">
+      {/* Panel */}
+      <div className="p-4 overflow-auto max-h-96">
+        {tab === "headers" && (
           <div className="space-y-4">
             {data.requestHeaders &&
               Object.keys(data.requestHeaders).length > 0 && (
@@ -56,15 +59,38 @@ export function Inspector({ stepId, data }: InspectorProps) {
                 />
               )}
           </div>
-        </TabsContent>
-
-        <TabsContent value="body" className="p-4 overflow-auto max-h-96">
+        )}
+        {tab === "body" && (
           <pre className="text-sm leading-relaxed whitespace-pre-wrap break-all font-mono">
             {data.body ? JSON.stringify(data.body, null, 2) : "No body"}
           </pre>
-        </TabsContent>
-      </Tabs>
+        )}
+      </div>
     </Card>
+  );
+}
+
+function TabButton({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "px-3 py-2.5 text-xs font-medium transition-colors border-b-2 -mb-px",
+        active
+          ? "text-foreground border-primary"
+          : "text-muted-foreground border-transparent hover:text-foreground",
+      )}
+    >
+      {label}
+    </button>
   );
 }
 
