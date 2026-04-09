@@ -187,28 +187,31 @@ export default function SchedulerPage() {
         ? Math.floor(new Date(validBeforeDate).getTime() / 1000)
         : undefined;
 
+      const body = JSON.stringify({
+        txBytes: signedTxBytes,
+        validAfter,
+        validBefore,
+        owner: address,
+        memo: memo || undefined,
+      });
+
       // First call → 402 challenge
+      setError("requesting challenge…");
       const probeRes = await fetch(`${SCHEDULER_API}/schedule`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        body: JSON.stringify({
-          txBytes: signedTxBytes,
-          validAfter,
-          validBefore,
-          owner: address,
-          memo: memo || undefined,
-        }),
+        body,
       });
 
       if (probeRes.status !== 402) {
-        // Either succeeded without payment (shouldn't happen) or error
         const data = await probeRes.json();
         if (probeRes.ok) {
           setResult(data as ScheduleResult);
           setStep("done");
+          setError(null);
           return;
         }
         throw new Error(
@@ -219,6 +222,8 @@ export default function SchedulerPage() {
       // Got 402 — create mppx credential and retry
       const wwwAuth = probeRes.headers.get("www-authenticate");
       if (!wwwAuth) throw new Error("No WWW-Authenticate header in 402");
+
+      setError("paying $0.10…");
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const getClient = (params: any) => getConnectorClient(config, params);
@@ -235,6 +240,8 @@ export default function SchedulerPage() {
 
       const credential = await mppx.createCredential(fakeResponse);
 
+      setError("submitting schedule…");
+
       // Retry with credential
       const payRes = await fetch(`${SCHEDULER_API}/schedule`, {
         method: "POST",
@@ -245,26 +252,21 @@ export default function SchedulerPage() {
             ? credential
             : `Payment ${credential}`,
         },
-        body: JSON.stringify({
-          txBytes: signedTxBytes,
-          validAfter,
-          validBefore,
-          owner: address,
-          memo: memo || undefined,
-        }),
+        body,
       });
 
-      const payData = await payRes.json();
-
       if (!payRes.ok) {
+        const payData = await payRes.json().catch(() => null);
         throw new Error(
-          (payData as { error?: string }).error ??
-            "Schedule failed after payment",
+          (payData as { error?: string } | null)?.error ??
+            `Schedule failed: ${payRes.status} ${payRes.statusText}`,
         );
       }
 
+      const payData = await payRes.json();
       setResult(payData as ScheduleResult);
       setStep("done");
+      setError(null);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Schedule failed";
       setError(msg.split("Request Arguments:")[0]?.trim() || msg);
@@ -461,7 +463,13 @@ export default function SchedulerPage() {
                 )}
 
                 {error && (
-                  <div className="px-3 py-2 rounded-lg border border-destructive/30 bg-destructive/5 text-destructive text-xs break-all whitespace-pre-wrap max-h-24 overflow-auto">
+                  <div
+                    className={`px-3 py-2 rounded-lg border text-xs break-all whitespace-pre-wrap max-h-24 overflow-auto ${
+                      error.endsWith("…")
+                        ? "border-step-challenge/30 bg-step-challenge/5 text-step-challenge"
+                        : "border-destructive/30 bg-destructive/5 text-destructive"
+                    }`}
+                  >
                     {error}
                   </div>
                 )}
