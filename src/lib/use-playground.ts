@@ -189,16 +189,11 @@ export function usePlayground() {
 
       const isSession = challenge.intent === "session";
 
-      // When the challenge has `methodDetails.feePayer: true`, the server
-      // expects pull mode (client signs, server broadcasts with sponsored
-      // gas). Otherwise default to push mode (client broadcasts directly).
-      const methodDetails = challenge.request?.methodDetails as
-        | { feePayer?: boolean }
-        | undefined;
-      const mode: "push" | "pull" = methodDetails?.feePayer
-        ? "pull"
-        : "push";
-
+      // Let mppx auto-select the mode. For json-rpc accounts (wagmi wallet
+      // clients like Tempo Wallet) it defaults to 'push' — the wallet
+      // broadcasts the call through its own sendCalls flow, and the Tempo
+      // Wallet's built-in fee sponsorship covers gas even when the
+      // challenge has `methodDetails.feePayer: true`.
       const methods = isSession
         ? [
             session({
@@ -209,7 +204,6 @@ export function usePlayground() {
         : [
             tempo({
               getClient: () => walletClient,
-              mode,
             }),
           ];
 
