@@ -34,6 +34,14 @@ export function WalletBar() {
             <span className="text-xs font-mono truncate">
               {address.slice(0, 6)}…{address.slice(-4)}
             </span>
+            <Button
+              variant="outline"
+              size="xs"
+              onClick={() => navigator.clipboard.writeText(address)}
+              className="ml-auto"
+            >
+              copy
+            </Button>
           </div>
           {balance && (
             <div className="text-xs text-muted-foreground pl-3.5">
