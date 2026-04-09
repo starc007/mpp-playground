@@ -144,16 +144,23 @@ export default function SchedulerPage() {
         token: currency as `0x${string}`,
       });
 
-      // Prepare the Tempo tx with validAfter/validBefore
+      // Prepare WITHOUT validAfter so eth_estimateGas works against the
+      // current block timestamp. The RPC rejects gas estimation for txs
+      // whose validAfter is in the future.
       const prepared = await prepareTransactionRequest(walletClient, {
         account: walletClient.account,
         ...transferCall,
-        validAfter,
-        ...(validBefore ? { validBefore } : {}),
       } as never);
 
+      // Inject the scheduling timestamps AFTER gas estimation, before signing.
+      const scheduled = {
+        ...prepared,
+        validAfter,
+        ...(validBefore ? { validBefore } : {}),
+      };
+
       // Sign without broadcasting — returns the serialized signed tx
-      const signed = await signTransaction(walletClient, prepared as never);
+      const signed = await signTransaction(walletClient, scheduled as never);
 
       setSignedTxBytes(signed);
       setStep("paying");
