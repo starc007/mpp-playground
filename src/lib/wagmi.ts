@@ -2,15 +2,18 @@ import { createConfig, http } from "wagmi";
 import { tempoWallet } from "accounts/wagmi";
 import { tempo, tempoModerato } from "viem/chains";
 import type { Network } from "./types";
+import { FEE_SPONSOR_URL } from "./chains";
 
 export function createWagmiConfig(network: Network) {
+  const feePayerUrl = FEE_SPONSOR_URL[network];
+
   if (network === "testnet") {
     return createConfig({
       chains: [tempoModerato],
       connectors: [
         tempoWallet({
           testnet: true,
-          feePayerUrl: "https://sponsor.moderato.tempo.xyz",
+          ...(feePayerUrl && { feePayerUrl }),
         }),
       ],
       multiInjectedProviderDiscovery: false,
@@ -20,7 +23,12 @@ export function createWagmiConfig(network: Network) {
 
   return createConfig({
     chains: [tempo],
-    connectors: [tempoWallet({ testnet: false })],
+    connectors: [
+      tempoWallet({
+        testnet: false,
+        ...(feePayerUrl && { feePayerUrl }),
+      }),
+    ],
     multiInjectedProviderDiscovery: false,
     transports: { [tempo.id]: http() },
   });

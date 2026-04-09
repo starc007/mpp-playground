@@ -11,7 +11,7 @@ import type {
   ChallengeData,
   Network,
 } from "./types";
-import { networkForChainId } from "./chains";
+import { networkForChainId, WEBAUTHN_GAS_BUFFER } from "./chains";
 import { probeEndpoint, payEndpoint } from "./api";
 
 const INITIAL_STEPS: Step[] = [
@@ -190,7 +190,7 @@ export function usePlayground() {
       // Wrap the connector client to bump gas estimates. WebAuthn wallets
       // + fee-payer dual signatures need ~25k more gas than the node
       // estimates. Without this, transferWithMemo reverts out-of-gas.
-      const GAS_BUFFER = 30000n;
+      const GAS_BUFFER = WEBAUTHN_GAS_BUFFER;
       const getClient = async () => {
         const client = await getConnectorClient(config);
         const originalRequest = client.request.bind(client);
