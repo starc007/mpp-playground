@@ -1,0 +1,19 @@
+{
+  "name": "mpp-tx-scheduler",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:create": "wrangler d1 create mpp-tx-scheduler",
+    "db:migrate": "wrangler d1 execute mpp-tx-scheduler --local --file=./schema.sql",
+    "db:migrate:remote": "wrangler d1 execute mpp-tx-scheduler --remote --file=./schema.sql"
+  },
+  "dependencies": {
+    "hono": "^4.7.0",
+    "mppx": "^0.5.9"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250325.0",
+    "wrangler": "^4.0.0"
+  }
+}
