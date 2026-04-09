@@ -13,7 +13,7 @@ export function Header({ network, onNetworkChange }: HeaderProps) {
   return (
     <header className="flex items-center justify-between px-8 py-4 border-b border-border fixed top-0 left-0 right-0 bg-bg z-10">
       <div className="flex items-center gap-3">
-        <div className="w-2 h-2 rounded-full bg-accent" />
+        <div className="w-2 h-2 rounded-full bg-primary" />
         <h1 className="text-sm font-semibold text-text tracking-wide uppercase">
           MPP Playground
         </h1>
@@ -34,7 +34,7 @@ export function Footer() {
             href="https://mpp.dev"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-text-muted hover:text-accent transition-colors"
+            className="text-text-muted hover:text-primary transition-colors"
           >
             mpp.dev
           </a>
@@ -45,7 +45,7 @@ export function Footer() {
             href="https://tempo.xyz"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-text-muted hover:text-accent transition-colors"
+            className="text-text-muted hover:text-primary transition-colors"
           >
             Tempo
           </a>

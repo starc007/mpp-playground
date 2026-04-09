@@ -36,7 +36,7 @@ export function StepBadge({ step, index, isSelected, onClick }: StepBadgeProps) 
         <div className={`w-1.5 h-1.5 rounded-full bg-current ${colorClass}`} />
       )}
       {step.status === "active" && (
-        <div className="w-1.5 h-1.5 rounded-full bg-accent animate-ping" />
+        <div className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
       )}
       {step.status === "error" && (
         <div className="w-1.5 h-1.5 rounded-full bg-error" />
@@ -53,9 +53,12 @@ export function StepConnector({ isComplete }: StepConnectorProps) {
   return (
     <div className="flex items-center">
       <div
-        className={`w-8 h-px ${isComplete ? "bg-accent" : "bg-border"} transition-colors`}
+        className={`w-8 h-px ${isComplete ? "bg-primary" : "bg-border"} transition-colors`}
       />
-      <svg className={`w-2 h-2 -ml-1 ${isComplete ? "text-accent" : "text-border"}`} viewBox="0 0 8 8">
+      <svg
+        className={`w-2 h-2 -ml-1 ${isComplete ? "text-primary" : "text-border"}`}
+        viewBox="0 0 8 8"
+      >
         <path d="M0 0 L8 4 L0 8 Z" fill="currentColor" />
       </svg>
     </div>

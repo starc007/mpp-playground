@@ -84,7 +84,6 @@ export default function PaymentLinksPage() {
                 value={form.amount}
                 onChange={(e) => setForm({ ...form, amount: e.target.value })}
                 placeholder="0.01"
-                className="h-10"
               />
             </Field>
 
@@ -95,7 +94,7 @@ export default function PaymentLinksPage() {
                   v && setForm({ ...form, currency: v })
                 }
               >
-                <SelectTrigger className="h-10 w-full">
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -116,7 +115,7 @@ export default function PaymentLinksPage() {
                   setForm({ ...form, recipient: e.target.value })
                 }
                 placeholder="0x…"
-                className="h-10 font-mono"
+                className="font-mono"
               />
               {form.recipient && !ADDRESS_REGEX.test(form.recipient) && (
                 <p className="text-xs text-destructive mt-1">
@@ -133,7 +132,6 @@ export default function PaymentLinksPage() {
                   setForm({ ...form, description: e.target.value })
                 }
                 placeholder="Coffee for the team"
-                className="h-10"
               />
             </Field>
 

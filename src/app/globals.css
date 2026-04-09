@@ -60,17 +60,16 @@
 }
 
 @theme inline {
-  /* Brand colors (used directly in our components) */
+  /* Brand-only tokens (used sparingly — prefer shadcn semantic tokens) */
   --color-bg: var(--bg);
   --color-bg-card: var(--bg-card);
   --color-bg-surface: var(--bg-surface);
   --color-bg-hover: var(--bg-hover);
-  --color-border: var(--border-subtle);
   --color-border-active: var(--border-strong);
   --color-text: var(--text);
   --color-text-muted: var(--text-muted);
   --color-text-dim: var(--text-dim);
-  --color-accent: var(--brand-accent);
+  --color-brand: var(--brand-accent);
   --color-error: var(--brand-error);
 
   --color-step-request: var(--step-request);
@@ -79,7 +78,7 @@
   --color-step-retry: var(--step-retry);
   --color-step-receipt: var(--step-receipt);
 
-  /* shadcn tokens exposed to Tailwind */
+  /* shadcn tokens exposed to Tailwind — these are the canonical ones */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -92,11 +91,11 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
-  --color-accent-shadcn: var(--accent);
+  --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
-  --color-border-shadcn: var(--border);
+  --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
 

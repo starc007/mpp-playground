@@ -48,7 +48,7 @@ export function ProbeInput({
           value={method}
           onValueChange={(v) => v && onMethodChange(v as HttpMethod)}
         >
-          <SelectTrigger className="h-12 w-25 font-medium text-primary">
+          <SelectTrigger className="w-25 font-medium text-primary">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -61,7 +61,7 @@ export function ProbeInput({
         </Select>
 
         <div className="relative flex-1">
-          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-text-dim text-sm pointer-events-none">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-dim text-sm pointer-events-none">
             $
           </span>
           <Input
@@ -70,15 +70,14 @@ export function ProbeInput({
             onChange={(e) => onUrlChange(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && onProbe()}
             placeholder="https://mpp.dev/api/ping/paid"
-            className="h-12 pl-8 pr-4 text-sm font-mono"
+            className="pl-7 font-mono"
           />
         </div>
 
         <Button
           onClick={onProbe}
           disabled={isProbing || !url}
-          size="lg"
-          className="h-12 px-6"
+          className="h-10 px-6"
         >
           {isProbing ? "probing..." : "probe"}
         </Button>

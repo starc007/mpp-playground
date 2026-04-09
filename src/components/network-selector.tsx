@@ -20,7 +20,7 @@ export function NetworkSelector({ network, onChange }: NetworkSelectorProps) {
       value={network}
       onValueChange={(v) => v && onChange(v as Network)}
     >
-      <SelectTrigger className="h-7 w-28 text-xs">
+      <SelectTrigger className="h-8 w-28 text-xs">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
