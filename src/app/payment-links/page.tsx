@@ -151,7 +151,7 @@ export default function PaymentLinksPage() {
                     value={linkUrl}
                     className="flex-1 h-9 text-xs font-mono text-primary"
                   />
-                  <ShareButton url={linkUrl} />
+                  <ShareButton url={linkUrl} label="copy" />
                 </div>
               </div>
             )}

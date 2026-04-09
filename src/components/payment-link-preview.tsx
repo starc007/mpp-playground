@@ -28,20 +28,15 @@ export function PaymentLinkPreview({ url, method }: PaymentLinkPreviewProps) {
 
   return (
     <Card className="overflow-hidden p-0 gap-0">
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">
-            Payment Link Preview
-          </span>
-          <span className="text-[10px] text-text-dim">
-            (rendered when html: true)
-          </span>
-        </div>
+      <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-b border-border">
+        <span className="text-xs text-muted-foreground whitespace-nowrap truncate">
+          Payment Link Preview
+        </span>
         <a
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs text-primary hover:underline"
+          className="text-xs text-primary hover:underline whitespace-nowrap shrink-0"
         >
           open in new tab ↗
         </a>

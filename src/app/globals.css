@@ -109,9 +109,10 @@
 }
 
 html {
-  /* Reserve space for the scrollbar so page content doesn't shift
-     horizontally when scrollable content appears. */
+  /* Always show the vertical scrollbar gutter so page content doesn't
+     shift horizontally when navigating between short/tall pages. */
   scrollbar-gutter: stable;
+  overflow-y: scroll;
 }
 
 body {

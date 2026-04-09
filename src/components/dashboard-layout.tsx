@@ -20,9 +20,9 @@ export function DashboardLayout({
 
       <main className="lg:ml-60 min-h-screen flex flex-col">
         <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
           className="flex-1 px-6 py-6 lg:px-10 lg:py-8 max-w-5xl w-full mx-auto space-y-8"
         >
           <header className="space-y-1">
