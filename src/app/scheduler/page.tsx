@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useAccount } from "wagmi";
 import { getConnectorClient } from "wagmi/actions";
 import { parseUnits } from "viem";
+import { RefreshCw } from "lucide-react";
 import { prepareTransactionRequest, signTransaction } from "viem/actions";
 import { Actions } from "viem/tempo";
 import { Mppx, tempo } from "mppx/client";
@@ -97,18 +98,16 @@ export default function SchedulerPage() {
   const [validBeforeDate, setValidBeforeDate] = useState("");
 
   // Flow state
-  const [step, setStep] = useState<
-    "form" | "signing" | "paying" | "done"
-  >("form");
+  const [step, setStep] = useState<"form" | "signing" | "paying" | "done">(
+    "form",
+  );
   const [signedTxBytes, setSignedTxBytes] = useState("");
   const [result, setResult] = useState<ScheduleResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Status lookup
   const [lookupId, setLookupId] = useState("");
-  const [statusResult, setStatusResult] = useState<ScheduleStatus | null>(
-    null,
-  );
+  const [statusResult, setStatusResult] = useState<ScheduleStatus | null>(null);
   const [myTxs, setMyTxs] = useState<ScheduleStatus[]>([]);
 
   const isFormValid =
@@ -127,9 +126,7 @@ export default function SchedulerPage() {
     try {
       const walletClient = await getConnectorClient(config);
 
-      const validAfter = Math.floor(
-        new Date(validAfterDate).getTime() / 1000,
-      );
+      const validAfter = Math.floor(new Date(validAfterDate).getTime() / 1000);
       const validBefore = validBeforeDate
         ? Math.floor(new Date(validBeforeDate).getTime() / 1000)
         : undefined;
@@ -180,9 +177,7 @@ export default function SchedulerPage() {
     setError(null);
 
     try {
-      const validAfter = Math.floor(
-        new Date(validAfterDate).getTime() / 1000,
-      );
+      const validAfter = Math.floor(new Date(validAfterDate).getTime() / 1000);
       const validBefore = validBeforeDate
         ? Math.floor(new Date(validBeforeDate).getTime() / 1000)
         : undefined;
@@ -258,7 +253,8 @@ export default function SchedulerPage() {
 
       if (!payRes.ok) {
         throw new Error(
-          (payData as { error?: string }).error ?? "Schedule failed after payment",
+          (payData as { error?: string }).error ??
+            "Schedule failed after payment",
         );
       }
 
@@ -302,7 +298,8 @@ export default function SchedulerPage() {
     try {
       const res = await fetch(`${SCHEDULER_API}/schedule/${lookupId}`);
       const data = await res.json();
-      if (!res.ok) throw new Error((data as { error?: string }).error ?? "Not found");
+      if (!res.ok)
+        throw new Error((data as { error?: string }).error ?? "Not found");
       setStatusResult(data as ScheduleStatus);
     } catch {
       setStatusResult(null);
@@ -335,12 +332,15 @@ export default function SchedulerPage() {
                 <div className="px-3 py-3 rounded-lg border border-step-receipt/30 bg-step-receipt/5 text-step-receipt text-xs space-y-1.5">
                   <p className="font-medium">Transaction scheduled</p>
                   <p>
-                    ID:{" "}
-                    <span className="font-mono">{result.id}</span>
+                    ID: <span className="font-mono">{result.id}</span>
                   </p>
                   <p>Broadcast at: {result.estimatedBroadcast}</p>
                 </div>
-                <Button variant="outline" onClick={resetForm} className="w-full">
+                <Button
+                  variant="outline"
+                  onClick={resetForm}
+                  className="w-full"
+                >
                   schedule another
                 </Button>
               </div>
@@ -470,7 +470,11 @@ export default function SchedulerPage() {
                   placeholder="schedule ID"
                   className="font-mono text-xs"
                 />
-                <Button variant="outline" onClick={handleLookup} disabled={!lookupId}>
+                <Button
+                  variant="outline"
+                  onClick={handleLookup}
+                  disabled={!lookupId}
+                >
                   check
                 </Button>
               </div>
@@ -482,10 +486,17 @@ export default function SchedulerPage() {
 
           {isConnected && (
             <Card>
-              <CardHeader className="flex-row items-center justify-between">
-                <CardTitle className="text-sm">My Scheduled TXs</CardTitle>
-                <Button variant="outline" size="xs" onClick={handleLoadMyTxs}>
-                  refresh
+              <CardHeader className="flex items-center justify-between">
+                <CardTitle className="text-sm w-fit">
+                  My Scheduled TXs
+                </CardTitle>
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  onClick={handleLoadMyTxs}
+                  title="Refresh"
+                >
+                  <RefreshCw className="size-3.5" />
                 </Button>
               </CardHeader>
               <CardContent>
@@ -545,9 +556,9 @@ function TxStatusCard({
   compact?: boolean;
 }) {
   return (
-    <div className="px-3 py-2.5 rounded-lg border border-border bg-card text-xs space-y-1.5">
+    <div className="px-3 py-2.5 rounded-lg border border-border bg-accent text-xs space-y-1.5">
       <div className="flex items-center justify-between">
-        <span className="font-mono text-muted-foreground truncate max-w-48">
+        <span className="font-mono text-muted-foreground max-w-48">
           {tx.id}
         </span>
         <Badge className={STATUS_COLORS[tx.status] ?? ""} variant="secondary">
