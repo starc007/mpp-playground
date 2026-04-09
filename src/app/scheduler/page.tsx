@@ -147,6 +147,11 @@ export default function SchedulerPage() {
         account: walletClient.account,
         ...transferCall,
         nonceKey: 0n,
+        // Disable fee payer so we get a plain 0x76 sender-signed tx.
+        // With feePayer enabled, signTransaction produces a 0x78 envelope
+        // that needs the fee payer to co-sign — it can't be broadcast raw
+        // via eth_sendRawTransaction later.
+        feePayer: false,
       } as never);
 
       // Inject the scheduling timestamps AFTER gas estimation.
@@ -156,6 +161,9 @@ export default function SchedulerPage() {
         ...prepared,
         validAfter,
         validBefore: resolvedValidBefore,
+        // Ensure no fee payer fields leak into the signed tx
+        feePayer: undefined,
+        feePayerSignature: undefined,
       };
 
       // Sign without broadcasting — returns the serialized signed tx
