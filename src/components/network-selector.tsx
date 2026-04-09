@@ -17,7 +17,7 @@ interface NetworkSelectorProps {
 export function NetworkSelector({ network, onChange }: NetworkSelectorProps) {
   return (
     <Select value={network} onValueChange={(v) => v && onChange(v as Network)}>
-      <SelectTrigger className="h-8 w-28 text-xs">
+      <SelectTrigger className="h-8 w-full text-xs">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
