@@ -142,20 +142,19 @@ export default function SchedulerPage() {
         token: currency as `0x${string}`,
       });
 
-      // Prepare WITHOUT validAfter and WITHOUT fee payer.
-      // - No validAfter: eth_estimateGas rejects future-dated txs
-      // - nonceKey 0n: disables expiring nonces (auto validBefore = now+25s)
+      // Prepare WITHOUT validAfter so eth_estimateGas works against
+      // the current block. Let prepareTransactionRequest auto-detect
+      // nonce mode — it uses expiring nonces (nonceKey=maxUint256,
+      // nonce=0) which avoids the "nonce too low" problem that happens
+      // with protocol nonces (nonceKey=0) when nonce isn't fetched.
       const prepared = await prepareTransactionRequest(walletClient, {
         account: walletClient.account,
         ...transferCall,
-        nonceKey: 0n,
       } as never);
 
-      // Inject the scheduling timestamps AFTER gas estimation.
-      // Override gas: the node estimates with a 65-byte dummy secp256k1
-      // signature, but WebAuthn sigs are ~2KB which adds ~200k+ to
-      // intrinsic gas (calldata costs). 350k covers transferWithMemo
-      // + WebAuthn sig overhead comfortably.
+      // Override timestamps and gas after estimation.
+      // Gas: node estimates with 65-byte dummy sig, WebAuthn sigs are
+      // ~2KB → intrinsic gas jumps from ~55k to ~280k. Use 350k.
       const resolvedValidBefore = validBefore ?? validAfter + 3600;
       const scheduled = {
         ...prepared,
