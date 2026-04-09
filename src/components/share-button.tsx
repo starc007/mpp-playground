@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 interface ShareButtonProps {
   url: string | null;
@@ -19,13 +20,14 @@ export function ShareButton({ url }: ShareButtonProps) {
   }
 
   return (
-    <button
+    <Button
+      variant="outline"
+      size="xs"
       onClick={handleCopy}
-      className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-border text-xs text-text-muted hover:text-accent hover:border-accent/30 transition-colors"
       title="Copy shareable playground link"
     >
       <svg
-        className="w-3 h-3"
+        className="size-3"
         viewBox="0 0 16 16"
         fill="none"
         stroke="currentColor"
@@ -35,6 +37,6 @@ export function ShareButton({ url }: ShareButtonProps) {
         <path d="M6 8h4" />
       </svg>
       {copied ? "copied" : "share"}
-    </button>
+    </Button>
   );
 }

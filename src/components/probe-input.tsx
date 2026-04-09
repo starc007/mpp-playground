@@ -2,6 +2,16 @@
 
 import { useState } from "react";
 import { EXAMPLE_ENDPOINTS } from "@/lib/examples";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
@@ -34,56 +44,61 @@ export function ProbeInput({
   return (
     <div className="space-y-3">
       <div className="flex gap-2">
-        <select
+        <Select
           value={method}
-          onChange={(e) => onMethodChange(e.target.value as HttpMethod)}
-          className="appearance-none px-3 py-3 rounded-lg border border-border bg-bg-card text-sm text-accent font-medium cursor-pointer focus:outline-none focus:border-accent/50 transition-colors"
+          onValueChange={(v) => v && onMethodChange(v as HttpMethod)}
         >
-          {METHODS.map((m) => (
-            <option key={m} value={m}>
-              {m}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger className="h-12 w-25 font-medium text-primary">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {METHODS.map((m) => (
+              <SelectItem key={m} value={m}>
+                {m}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
         <div className="relative flex-1">
-          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-text-dim text-sm">
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-text-dim text-sm pointer-events-none">
             $
           </span>
-          <input
+          <Input
             type="text"
             value={url}
             onChange={(e) => onUrlChange(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && onProbe()}
             placeholder="https://mpp.dev/api/ping/paid"
-            className="w-full pl-8 pr-4 py-3 rounded-lg border border-border bg-bg-card text-sm text-text placeholder:text-text-dim focus:outline-none focus:border-accent/50 transition-colors"
+            className="h-12 pl-8 pr-4 text-sm font-mono"
           />
         </div>
 
-        <button
+        <Button
           onClick={onProbe}
           disabled={isProbing || !url}
-          className="px-6 py-3 rounded-lg bg-accent text-bg text-sm font-medium hover:bg-accent/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          size="lg"
+          className="h-12 px-6"
         >
           {isProbing ? "probing..." : "probe"}
-        </button>
+        </Button>
       </div>
 
       {hasBody && (
         <div>
           <button
             onClick={() => setShowBody(!showBody)}
-            className="text-xs text-text-muted hover:text-accent transition-colors mb-2"
+            className="text-xs text-text-muted hover:text-primary transition-colors mb-2"
           >
-            {showBody ? "- hide body" : "+ add request body"}
+            {showBody ? "− hide body" : "+ add request body"}
           </button>
           {showBody && (
-            <textarea
+            <Textarea
               value={body}
               onChange={(e) => onBodyChange(e.target.value)}
               placeholder='{"prompt": "hello"}'
               rows={4}
-              className="w-full px-4 py-3 rounded-lg border border-border bg-bg-card text-sm text-text placeholder:text-text-dim focus:outline-none focus:border-accent/50 transition-colors resize-y"
+              className="font-mono text-sm"
             />
           )}
         </div>
@@ -91,18 +106,19 @@ export function ProbeInput({
 
       <div className="flex items-center gap-3">
         <span className="text-xs text-text-dim">try:</span>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {EXAMPLE_ENDPOINTS.map((ex) => (
-            <button
+            <Button
               key={ex.url}
+              variant="outline"
+              size="xs"
               onClick={() => {
                 onUrlChange(ex.url);
                 if (ex.method) onMethodChange(ex.method);
               }}
-              className="text-xs px-2.5 py-1 rounded border border-border text-text-muted hover:text-accent hover:border-accent/30 transition-colors"
             >
               {ex.label}
-            </button>
+            </Button>
           ))}
         </div>
       </div>

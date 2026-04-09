@@ -3,20 +3,10 @@
 import { useAccount, useConnect, useDisconnect, useReadContract } from "wagmi";
 import { formatUnits } from "viem";
 import { useNetwork } from "./providers";
+import { TEMPO_CURRENCIES, ERC20_BALANCE_ABI } from "@/lib/currencies";
+import { Button } from "@/components/ui/button";
 
-// pathUSD token address on Tempo
-const PATHUSD_ADDRESS = "0x20c0000000000000000000000000000000000000" as const;
-
-// Minimal ERC20 ABI for balanceOf
-const erc20BalanceAbi = [
-  {
-    name: "balanceOf",
-    type: "function",
-    stateMutability: "view",
-    inputs: [{ name: "account", type: "address" }],
-    outputs: [{ name: "", type: "uint256" }],
-  },
-] as const;
+const PATHUSD_ADDRESS = TEMPO_CURRENCIES[0].address;
 
 export function WalletBar() {
   const { address, isConnected } = useAccount();
@@ -26,10 +16,10 @@ export function WalletBar() {
 
   const { data: rawBalance } = useReadContract({
     address: PATHUSD_ADDRESS,
-    abi: erc20BalanceAbi,
+    abi: ERC20_BALANCE_ABI,
     functionName: "balanceOf",
     args: address ? [address] : undefined,
-    query: { enabled: !!address },
+    query: { enabled: Boolean(address) },
   });
 
   const tempoConnector = connectors.find((c) => c.id === "xyz.tempo");
@@ -40,37 +30,38 @@ export function WalletBar() {
 
     return (
       <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2 px-3 py-2 rounded border border-border bg-bg-surface">
-          <div className="w-1.5 h-1.5 rounded-full bg-accent" />
-          <span className="text-xs text-text">
-            {address.slice(0, 6)}...{address.slice(-4)}
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border bg-card">
+          <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+          <span className="text-xs font-mono">
+            {address.slice(0, 6)}…{address.slice(-4)}
           </span>
           {balance && (
             <span className="text-xs text-text-dim">
               {parseFloat(balance).toFixed(2)} pathUSD
             </span>
           )}
-          <span className="text-[10px] text-text-dim">
-            {network}
-          </span>
+          <span className="text-[10px] text-text-dim">{network}</span>
         </div>
-        <button
+        <Button
+          variant="ghost"
+          size="xs"
           onClick={() => disconnect()}
-          className="text-xs text-text-dim hover:text-error transition-colors"
+          className="text-text-dim hover:text-destructive"
         >
           disconnect
-        </button>
+        </Button>
       </div>
     );
   }
 
   return (
-    <button
+    <Button
+      variant="outline"
+      size="sm"
       onClick={() => tempoConnector && connect({ connector: tempoConnector })}
       disabled={isPending}
-      className="px-4 py-2 rounded border border-border text-xs text-text-muted hover:text-accent hover:border-accent/30 transition-colors disabled:opacity-50"
     >
-      {isPending ? "connecting..." : "connect wallet"}
-    </button>
+      {isPending ? "connecting…" : "connect wallet"}
+    </Button>
   );
 }

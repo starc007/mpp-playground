@@ -7,8 +7,9 @@ import { Inspector } from "@/components/inspector";
 import { DetectionBadge } from "@/components/detection-badge";
 import { Header, Footer } from "@/components/layout";
 import { ShareButton } from "@/components/share-button";
-
+import { PaymentLinkPreview } from "@/components/payment-link-preview";
 import { NavTabs } from "@/components/nav-tabs";
+import { Button } from "@/components/ui/button";
 
 export default function PlaygroundPage() {
   const pg = usePlayground();
@@ -45,36 +46,39 @@ export default function PlaygroundPage() {
 
         {pg.networkMismatch &&
           pg.challenge &&
-          pg.steps.find((s) => s.id === "challenge")?.status === "complete" && (
+          pg.steps.find((s) => s.id === "challenge")?.status ===
+            "complete" && (
             <div className="flex flex-col items-center gap-2">
               <div className="px-4 py-3 rounded-lg border border-step-challenge/30 bg-step-challenge/5 text-step-challenge text-sm text-center">
                 This service requires{" "}
-                <span className="font-medium">{pg.expectedNetwork}</span> (chain{" "}
-                {String(pg.challengeChainId)}). Switch network to pay.
+                <span className="font-medium">{pg.expectedNetwork}</span>{" "}
+                (chain {String(pg.challengeChainId)}). Switch network to pay.
               </div>
-              <button
+              <Button
+                variant="link"
+                size="xs"
                 onClick={() => pg.setNetwork(pg.expectedNetwork!)}
-                className="text-xs text-accent hover:underline"
               >
                 switch to {pg.expectedNetwork}
-              </button>
+              </Button>
             </div>
           )}
 
         {pg.showPayButton && (
           <div className="flex justify-center">
-            <button
+            <Button
               onClick={pg.handlePay}
               disabled={pg.isPaying}
-              className="px-8 py-3 rounded-lg bg-step-pay/20 text-step-pay text-sm font-medium hover:bg-step-pay/30 transition-colors disabled:opacity-50"
+              size="lg"
+              className="h-12 px-8 bg-step-pay/20 text-step-pay hover:bg-step-pay/30"
             >
-              {pg.isPaying ? "paying..." : "pay & complete flow"}
-            </button>
+              {pg.isPaying ? "paying…" : "pay & complete flow"}
+            </Button>
           </div>
         )}
 
         {pg.error && (
-          <div className="px-4 py-3 rounded-lg border border-error/30 bg-error/5 text-error text-sm max-h-32 overflow-auto break-all whitespace-pre-wrap">
+          <div className="px-4 py-3 rounded-lg border border-destructive/30 bg-destructive/5 text-destructive text-sm max-h-32 overflow-auto break-all whitespace-pre-wrap">
             {pg.error}
           </div>
         )}
@@ -82,7 +86,14 @@ export default function PlaygroundPage() {
         {pg.detection && <DetectionBadge info={pg.detection} />}
 
         {pg.selectedStep && pg.selectedStepData?.data && (
-          <Inspector stepId={pg.selectedStep} data={pg.selectedStepData.data} />
+          <Inspector
+            stepId={pg.selectedStep}
+            data={pg.selectedStepData.data}
+          />
+        )}
+
+        {pg.detection?.mppEnabled && pg.url && (
+          <PaymentLinkPreview url={pg.url} method={pg.method} />
         )}
       </main>
 
