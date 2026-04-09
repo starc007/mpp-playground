@@ -72,15 +72,18 @@ export function useScheduler() {
         token: currency as `0x${string}`,
       });
 
-      // Use expiring nonces (nonceKey='expiring') so the scheduled tx
-      // lives in a separate nonce space from protocol nonces. Without
-      // this, the $0.10 MPP payment (which happens between signing and
-      // broadcast) increments the protocol nonce, making the pre-signed
-      // tx's nonce stale → "nonce too low" on broadcast.
+      // Use a dedicated 2D nonce key so the scheduled tx doesn't share
+      // the protocol nonce sequence. Without this, the $0.10 MPP payment
+      // (which happens between signing and broadcast) increments the
+      // protocol nonce → "nonce too low" on broadcast.
+      //
+      // nonceKey=1n gives a separate nonce space (TIP-1009 2D nonces).
+      // Unlike expiring nonces (maxUint256), user nonce keys don't
+      // enforce a 30-second validBefore window.
       const prepared = await prepareTransactionRequest(walletClient, {
         account: walletClient.account,
         ...transferCall,
-        nonceKey: "expiring",
+        nonceKey: 1n,
       } as never);
 
       // Override timestamps and gas after estimation.
