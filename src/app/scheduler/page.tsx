@@ -152,9 +152,14 @@ export default function SchedulerPage() {
       } as never);
 
       // Inject the scheduling timestamps AFTER gas estimation.
+      // Override gas: the node estimates with a 65-byte dummy secp256k1
+      // signature, but WebAuthn sigs are ~2KB which adds ~200k+ to
+      // intrinsic gas (calldata costs). 350k covers transferWithMemo
+      // + WebAuthn sig overhead comfortably.
       const resolvedValidBefore = validBefore ?? validAfter + 3600;
       const scheduled = {
         ...prepared,
+        gas: 350_000n,
         validAfter,
         validBefore: resolvedValidBefore,
       };
