@@ -226,8 +226,14 @@ export default function SchedulerPage() {
       setError("paying $0.10…");
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const getClient = (params: any) => getConnectorClient(config, params);
+      const getClient = async (params: any) => {
+        console.log("[scheduler] getClient called with:", params);
+        const client = await getConnectorClient(config, params);
+        console.log("[scheduler] getClient resolved, account:", client.account?.address, "type:", client.account?.type);
+        return client;
+      };
 
+      console.log("[scheduler] creating Mppx instance");
       const mppx = Mppx.create({
         methods: [tempo({ getClient })],
         polyfill: false,
@@ -238,9 +244,9 @@ export default function SchedulerPage() {
         headers: { "WWW-Authenticate": wwwAuth },
       });
 
-      console.log("Creating MPP credential with challenge:", wwwAuth);
+      console.log("[scheduler] calling createCredential…");
       const credential = await mppx.createCredential(fakeResponse);
-      console.log("Got credential:", credential);
+      console.log("[scheduler] got credential:", credential.slice(0, 50));
 
       setError("submitting schedule…");
 
@@ -270,6 +276,7 @@ export default function SchedulerPage() {
       setStep("done");
       setError(null);
     } catch (err) {
+      console.log("Schedule error:", err);
       const msg = err instanceof Error ? err.message : "Schedule failed";
       setError(msg.split("Request Arguments:")[0]?.trim() || msg);
       setStep("form");
