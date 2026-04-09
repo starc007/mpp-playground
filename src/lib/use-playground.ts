@@ -187,37 +187,50 @@ export function usePlayground() {
 
       const isSession = challenge.intent === "session";
 
-      // Follow the wagmi pattern from the docs — pass a factory that
-      // forwards `parameters` (including chainId) to getConnectorClient
-      // so the returned wallet client is bound to the right chain.
-      // wagmi types the chainId parameter as a union of configured chains
-      // (`4217 | 42431`), whereas mppx passes a plain `number`. This cast
-      // is safe because wagmi handles unknown chain IDs gracefully.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const getClient = (params: any) => getConnectorClient(config, params);
+      // Wrap the connector client to bump gas estimates. WebAuthn wallets
+      // + fee-payer dual signatures need ~25k more gas than the node
+      // estimates. Without this, transferWithMemo reverts out-of-gas.
+      const GAS_BUFFER = 30000n;
+      const getClient = async () => {
+        const client = await getConnectorClient(config);
+        const originalRequest = client.request.bind(client);
+        return Object.assign(Object.create(client), {
+          ...client,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          request: async (args: any, opts?: any): Promise<any> => {
+            const result = await originalRequest(args, opts);
+            if (
+              args.method === "eth_fillTransaction" &&
+              result &&
+              typeof result === "object" &&
+              "gas" in result
+            ) {
+              const bumped = BigInt(result.gas as string) + GAS_BUFFER;
+              return { ...result, gas: "0x" + bumped.toString(16) };
+            }
+            return result;
+          },
+        });
+      };
 
       const methods = isSession
         ? [session({ getClient, deposit: "1" })]
-        : [tempo({ getClient })];
+        : [tempo({ mode: "pull", getClient })];
 
       const mppx = Mppx.create({ methods, polyfill: false });
 
-      const { Challenge: ChallengeModule } = await import("mppx");
-      const wwwAuthHeader =
-        rawWwwAuthenticate ?? ChallengeModule.serialize(challenge);
-
+      // Reconstruct a 402 response with the original WWW-Authenticate
+      // header so mppx can parse the challenge and create a credential.
       const fakeResponse = new Response(null, {
         status: 402,
-        headers: { "WWW-Authenticate": wwwAuthHeader },
+        headers: { "WWW-Authenticate": rawWwwAuthenticate! },
       });
 
       const credential = await mppx.createCredential(fakeResponse);
 
       updateStep("pay", {
         status: "complete",
-        data: {
-          body: { credential: credential.slice(0, 50) + "..." },
-        },
+        data: { body: { credential: credential.slice(0, 50) + "..." } },
       });
 
       updateStep("retry", { status: "active" });
