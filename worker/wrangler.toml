@@ -1,6 +1,7 @@
 name = "mpp-tx-scheduler"
 main = "src/index.ts"
 compatibility_date = "2025-04-01"
+compatibility_flags = ["nodejs_compat"]
 
 [triggers]
 crons = ["* * * * *"]  # every minute
@@ -8,9 +9,8 @@ crons = ["* * * * *"]  # every minute
 [[d1_databases]]
 binding = "DB"
 database_name = "mpp-tx-scheduler"
-database_id = ""  # filled after `wrangler d1 create mpp-tx-scheduler`
+database_id = "8e31411e-4ea7-4405-bacb-d6d8dddafc4e"
 
+# MPP_SECRET_KEY and RECIPIENT_ADDRESS are set via `wrangler secret put`
 [vars]
-MPP_SECRET_KEY = ""  # set via `wrangler secret put MPP_SECRET_KEY`
-RECIPIENT_ADDRESS = ""  # your wallet address for receiving payment
 RPC_URL = "https://rpc.moderato.tempo.xyz"

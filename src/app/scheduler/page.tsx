@@ -73,9 +73,7 @@ export default function SchedulerPage() {
     setResult(null);
 
     try {
-      const validAfter = Math.floor(
-        new Date(validAfterDate).getTime() / 1000,
-      );
+      const validAfter = Math.floor(new Date(validAfterDate).getTime() / 1000);
       const validBefore = validBeforeDate
         ? Math.floor(new Date(validBeforeDate).getTime() / 1000)
         : undefined;
@@ -122,9 +120,7 @@ export default function SchedulerPage() {
       const res = await fetch(`${SCHEDULER_API}/schedule/${lookupId}`);
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(
-          (data as { error?: string }).error ?? "Lookup failed",
-        );
+        throw new Error((data as { error?: string }).error ?? "Lookup failed");
       }
       setStatusResult(data as ScheduleStatus);
     } catch (err) {
@@ -221,7 +217,9 @@ export default function SchedulerPage() {
 
             <Button
               onClick={handleSchedule}
-              disabled={!txBytes || !validAfterDate || !isConnected || isSubmitting}
+              disabled={
+                !txBytes || !validAfterDate || !isConnected || isSubmitting
+              }
               className="w-full"
             >
               {isSubmitting ? "scheduling…" : "schedule ($0.10)"}
@@ -362,9 +360,7 @@ function TxStatusCard({
           {tx.error && (
             <div className="text-destructive break-all">{tx.error}</div>
           )}
-          {tx.memo && (
-            <div className="text-muted-foreground">{tx.memo}</div>
-          )}
+          {tx.memo && <div className="text-muted-foreground">{tx.memo}</div>}
         </>
       )}
       {tx.status === "pending" && (
