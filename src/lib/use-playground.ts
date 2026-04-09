@@ -4,7 +4,14 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useAccount } from "wagmi";
 import { useNetwork } from "@/components/providers";
 import type { HttpMethod } from "@/components/probe-input";
-import type { Step, StepId, DetectionInfo, ChallengeData, Network } from "./types";
+import type {
+  Step,
+  StepId,
+  DetectionInfo,
+  ChallengeData,
+  Network,
+} from "./types";
+import { networkForChainId } from "./chains";
 
 const INITIAL_STEPS: Step[] = [
   { id: "request", label: "Request", status: "idle" },
@@ -288,16 +295,19 @@ export function usePlayground() {
     network,
   ]);
 
-  // Chain mismatch detection
-  const challengeChainId = challenge?.request?.methodDetails
-    ? (challenge.request.methodDetails as Record<string, unknown>)?.chainId
-    : undefined;
+  // Chain mismatch detection — compare the challenge's requested chain with
+  // the playground's currently selected network.
+  const challengeChainId = (() => {
+    const details = challenge?.request?.methodDetails as
+      | Record<string, unknown>
+      | undefined;
+    const id = details?.chainId;
+    return typeof id === "number" ? id : undefined;
+  })();
   const expectedNetwork: Network | undefined =
-    challengeChainId === 4217
-      ? "mainnet"
-      : challengeChainId === 42431
-        ? "testnet"
-        : undefined;
+    challengeChainId !== undefined
+      ? networkForChainId(challengeChainId)
+      : undefined;
   const networkMismatch =
     expectedNetwork !== undefined && expectedNetwork !== network;
 
