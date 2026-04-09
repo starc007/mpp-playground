@@ -82,7 +82,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function SchedulerPage() {
   const { address, isConnected } = useAccount();
-  const { config } = useNetwork();
+  const { config, rawConfig } = useNetwork();
 
   // Transfer details
   const [recipient, setRecipient] = useState("");
@@ -124,27 +124,11 @@ export default function SchedulerPage() {
     setStep("signing");
 
     try {
-      const { createWalletClient, custom } = await import("viem");
-      const { useConnectorClient } = await import("wagmi");
-      void useConnectorClient; // unused, just importing viem
-
-      // Get the main wallet client (has fee payer transport)
-      const walletClient = await getConnectorClient(config);
-      const account = walletClient.account;
-
-      // Create a RAW wallet client without the fee payer transport.
-      // The tempoWallet connector's feePayerUrl wraps all requests
-      // through the fee payer, making signTransaction produce a 0x78
-      // (fee-payer envelope) instead of a plain 0x76 (sender-signed).
-      // Scheduled txs need 0x76 because the cron worker broadcasts
-      // them directly via eth_sendRawTransaction.
-      const chain =
-        walletClient.chain ?? (await import("viem/chains")).tempoModerato;
-      const rawClient = createWalletClient({
-        account,
-        chain,
-        transport: custom(walletClient.transport),
-      });
+      // Use rawConfig (no feePayerUrl) so signTransaction produces a
+      // plain 0x76 sender-signed tx instead of a 0x78 fee-payer envelope.
+      // The cron worker broadcasts via eth_sendRawTransaction which only
+      // accepts 0x76.
+      const walletClient = await getConnectorClient(rawConfig);
 
       const validAfter = Math.floor(new Date(validAfterDate).getTime() / 1000);
       const validBefore = validBeforeDate
@@ -161,8 +145,8 @@ export default function SchedulerPage() {
       // Prepare WITHOUT validAfter and WITHOUT fee payer.
       // - No validAfter: eth_estimateGas rejects future-dated txs
       // - nonceKey 0n: disables expiring nonces (auto validBefore = now+25s)
-      const prepared = await prepareTransactionRequest(rawClient, {
-        account,
+      const prepared = await prepareTransactionRequest(walletClient, {
+        account: walletClient.account,
         ...transferCall,
         nonceKey: 0n,
       } as never);
@@ -176,7 +160,7 @@ export default function SchedulerPage() {
       };
 
       // Sign without broadcasting — returns the serialized 0x76 tx
-      const signed = await signTransaction(rawClient, scheduled as never);
+      const signed = await signTransaction(walletClient, scheduled as never);
 
       setSignedTxBytes(signed);
       setStep("paying");
