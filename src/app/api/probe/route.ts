@@ -6,9 +6,10 @@ function parseWwwAuthenticate(header: string): Record<string, string> | null {
 
   const params: Record<string, string> = {};
   const regex = /(\w+)="([^"\\]*(?:\\.[^"\\]*)*)"/g;
-  let m;
+  let m: RegExpExecArray | null;
   while ((m = regex.exec(match[1])) !== null) {
-    params[m[1]] = m[2];
+    const [, key, value] = m;
+    if (key && value !== undefined) params[key] = value;
   }
   return params;
 }
