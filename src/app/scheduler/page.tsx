@@ -82,7 +82,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function SchedulerPage() {
   const { address, isConnected } = useAccount();
-  const { config, rawConfig } = useNetwork();
+  const { config, network } = useNetwork();
 
   // Transfer details
   const [recipient, setRecipient] = useState("");
@@ -124,10 +124,15 @@ export default function SchedulerPage() {
     setStep("signing");
 
     try {
-      // Use rawConfig (no feePayerUrl) so signTransaction produces a
-      // plain 0x76 sender-signed tx instead of a 0x78 fee-payer envelope.
-      // The cron worker broadcasts via eth_sendRawTransaction which only
-      // accepts 0x76.
+      // Create a config WITHOUT feePayerUrl lazily — so signTransaction
+      // produces a plain 0x76 sender-signed tx. We create it here (not
+      // at the provider level) to avoid a second tempoWallet connector
+      // instance which would create a duplicate iframe and break
+      // postMessage communication on production domains.
+      const { createWagmiConfig } = await import("@/lib/wagmi");
+      const rawConfig = createWagmiConfig(network, {
+        disableFeePayer: true,
+      });
       const walletClient = await getConnectorClient(rawConfig);
 
       const validAfter = Math.floor(new Date(validAfterDate).getTime() / 1000);
@@ -179,8 +184,6 @@ export default function SchedulerPage() {
   async function handleSchedule() {
     if (!signedTxBytes || !address) return;
 
-    setError(null);
-
     try {
       const validAfter = Math.floor(new Date(validAfterDate).getTime() / 1000);
       const validBefore = validBeforeDate
@@ -196,7 +199,6 @@ export default function SchedulerPage() {
       });
 
       // First call → 402 challenge
-      setError("requesting challenge…");
       const probeRes = await fetch(`${SCHEDULER_API}/schedule`, {
         method: "POST",
         headers: {
@@ -222,18 +224,12 @@ export default function SchedulerPage() {
       // Got 402 — create mppx credential and retry
       const wwwAuth = probeRes.headers.get("www-authenticate");
       if (!wwwAuth) throw new Error("No WWW-Authenticate header in 402");
-
-      setError("paying $0.10…");
-
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const getClient = async (params: any) => {
-        console.log("[scheduler] getClient called with:", params);
         const client = await getConnectorClient(config, params);
-        console.log("[scheduler] getClient resolved, account:", client.account?.address, "type:", client.account?.type);
         return client;
       };
 
-      console.log("[scheduler] creating Mppx instance");
       const mppx = Mppx.create({
         methods: [tempo({ getClient })],
         polyfill: false,
@@ -247,8 +243,6 @@ export default function SchedulerPage() {
       console.log("[scheduler] calling createCredential…");
       const credential = await mppx.createCredential(fakeResponse);
       console.log("[scheduler] got credential:", credential.slice(0, 50));
-
-      setError("submitting schedule…");
 
       // Retry with credential
       const payRes = await fetch(`${SCHEDULER_API}/schedule`, {
@@ -274,7 +268,6 @@ export default function SchedulerPage() {
       const payData = await payRes.json();
       setResult(payData as ScheduleResult);
       setStep("done");
-      setError(null);
     } catch (err) {
       console.log("Schedule error:", err);
       const msg = err instanceof Error ? err.message : "Schedule failed";

@@ -16,15 +16,12 @@ interface NetworkContextValue {
   network: Network;
   setNetwork: (network: Network) => void;
   config: ReturnType<typeof createWagmiConfig>;
-  /** Config without fee payer — for signing raw txs (scheduler). */
-  rawConfig: ReturnType<typeof createWagmiConfig>;
 }
 
 const NetworkContext = createContext<NetworkContextValue>({
   network: "testnet",
   setNetwork: () => {},
   config: createWagmiConfig("testnet"),
-  rawConfig: createWagmiConfig("testnet", { disableFeePayer: true }),
 });
 
 export function useNetwork() {
@@ -35,17 +32,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
   const [network, setNetworkState] = useState<Network>("testnet");
   const config = useMemo(() => createWagmiConfig(network), [network]);
-  const rawConfig = useMemo(
-    () => createWagmiConfig(network, { disableFeePayer: true }),
-    [network],
-  );
 
   const setNetwork = useCallback((n: Network) => {
     setNetworkState(n);
   }, []);
 
   return (
-    <NetworkContext value={{ network, setNetwork, config, rawConfig }}>
+    <NetworkContext value={{ network, setNetwork, config }}>
       <WagmiProvider config={config} key={network}>
         <QueryClientProvider client={queryClient}>
           {children}
