@@ -36,6 +36,12 @@ app.use(
   "*",
   cors({
     origin: "*",
+    allowHeaders: [
+      "Content-Type",
+      "Authorization",
+      "Accept",
+      "x-owner",
+    ],
     exposeHeaders: ["WWW-Authenticate", "Payment-Receipt"],
   }),
 );
