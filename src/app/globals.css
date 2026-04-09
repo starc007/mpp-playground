@@ -1,23 +1,118 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ------------------------------------------------------------------
+   Brand palette — the single source of truth for our colors.
+   shadcn tokens below are derived from these values so our
+   components and shadcn primitives stay in sync.
+   ------------------------------------------------------------------ */
+:root {
+  /* Brand */
+  --bg: #151515;
+  --bg-card: #1c1c1c;
+  --bg-surface: #1a1a1a;
+  --bg-hover: #222222;
+
+  --border-subtle: #1e1e2a;
+  --border-strong: #2e2e3e;
+
+  --text: #e8e8ed;
+  --text-muted: #8b8b9e;
+  --text-dim: #505064;
+
+  --brand-accent: #4ade80;
+  --brand-error: #f87171;
+
+  --step-request: #7c9eff;
+  --step-challenge: #ffb547;
+  --step-pay: #a78bfa;
+  --step-retry: #7c9eff;
+  --step-receipt: #4ade80;
+
+  /* shadcn tokens — remapped to brand palette */
+  --background: var(--bg);
+  --foreground: var(--text);
+  --card: var(--bg-card);
+  --card-foreground: var(--text);
+  --popover: var(--bg-card);
+  --popover-foreground: var(--text);
+  --primary: var(--brand-accent);
+  --primary-foreground: var(--bg);
+  --secondary: var(--bg-surface);
+  --secondary-foreground: var(--text);
+  --muted: var(--bg-surface);
+  --muted-foreground: var(--text-muted);
+  --accent: var(--bg-hover);
+  --accent-foreground: var(--text);
+  --destructive: var(--brand-error);
+  --destructive-foreground: var(--text);
+  --border: var(--border-subtle);
+  --input: var(--border-subtle);
+  --ring: var(--brand-accent);
+  --radius: 0.5rem;
+}
+
+/* Force dark theme — the playground is dark-only by design. */
+.dark {
+  color-scheme: dark;
+}
 
 @theme inline {
-  --color-bg: #151515;
-  --color-bg-card: #1c1c1c;
-  --color-bg-hover: #222222;
-  --color-bg-surface: #1a1a1a;
-  --color-border: #1e1e2a;
-  --color-border-active: #2e2e3e;
-  --color-text: #e8e8ed;
-  --color-text-muted: #8b8b9e;
-  --color-text-dim: #505064;
-  --color-step-request: #7c9eff;
-  --color-step-challenge: #ffb547;
-  --color-step-pay: #a78bfa;
-  --color-step-retry: #7c9eff;
-  --color-step-receipt: #4ade80;
-  --color-accent: #4ade80;
-  --color-error: #f87171;
+  /* Brand-only tokens (used sparingly — prefer shadcn semantic tokens) */
+  --color-bg: var(--bg);
+  --color-bg-card: var(--bg-card);
+  --color-bg-surface: var(--bg-surface);
+  --color-bg-hover: var(--bg-hover);
+  --color-border-active: var(--border-strong);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-text-dim: var(--text-dim);
+  --color-brand: var(--brand-accent);
+  --color-error: var(--brand-error);
+
+  --color-step-request: var(--step-request);
+  --color-step-challenge: var(--step-challenge);
+  --color-step-pay: var(--step-pay);
+  --color-step-retry: var(--step-retry);
+  --color-step-receipt: var(--step-receipt);
+
+  /* shadcn tokens exposed to Tailwind — these are the canonical ones */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --font-sans: var(--font-geist-sans);
+}
+
+html {
+  /* Always show the vertical scrollbar gutter so page content doesn't
+     shift horizontally when navigating between short/tall pages. */
+  scrollbar-gutter: stable;
+  overflow-y: scroll;
 }
 
 body {

@@ -15,7 +15,9 @@ export function StepFlow({ steps, selectedStep, onSelectStep }: StepFlowProps) {
       {steps.map((step, i) => (
         <div key={step.id} className="flex items-center">
           {i > 0 && (
-            <StepConnector isComplete={steps[i - 1].status === "complete"} />
+            <StepConnector
+              isComplete={steps[i - 1]?.status === "complete"}
+            />
           )}
           <StepBadge
             step={step}

@@ -4,7 +4,15 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useAccount } from "wagmi";
 import { useNetwork } from "@/components/providers";
 import type { HttpMethod } from "@/components/probe-input";
-import type { Step, StepId, DetectionInfo, ChallengeData, Network } from "./types";
+import type {
+  Step,
+  StepId,
+  DetectionInfo,
+  ChallengeData,
+  Network,
+} from "./types";
+import { networkForChainId } from "./chains";
+import { probeEndpoint, payEndpoint } from "./api";
 
 const INITIAL_STEPS: Step[] = [
   { id: "request", label: "Request", status: "idle" },
@@ -112,23 +120,7 @@ export function usePlayground() {
     });
 
     try {
-      const res = await fetch("/api/probe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          url,
-          method,
-          ...(reqBody && method !== "GET" && method !== "DELETE"
-            ? { body: reqBody }
-            : {}),
-        }),
-      });
-
-      const result = await res.json();
-
-      if (!res.ok) {
-        throw new Error(result.error || "Probe failed");
-      }
+      const result = await probeEndpoint({ url, method, body: reqBody });
 
       updateStep("request", {
         status: "complete",
@@ -233,20 +225,12 @@ export function usePlayground() {
 
       updateStep("retry", { status: "active" });
 
-      const payRes = await fetch("/api/pay", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          url,
-          credential,
-          method,
-          ...(reqBody && method !== "GET" && method !== "DELETE"
-            ? { body: reqBody }
-            : {}),
-        }),
+      const payResult = await payEndpoint({
+        url,
+        credential,
+        method,
+        body: reqBody,
       });
-
-      const payResult = await payRes.json();
 
       updateStep("retry", {
         status: "complete",
@@ -285,19 +269,21 @@ export function usePlayground() {
     updateStep,
     rawWwwAuthenticate,
     config,
-    network,
   ]);
 
-  // Chain mismatch detection
-  const challengeChainId = challenge?.request?.methodDetails
-    ? (challenge.request.methodDetails as Record<string, unknown>)?.chainId
-    : undefined;
+  // Chain mismatch detection — compare the challenge's requested chain with
+  // the playground's currently selected network.
+  const challengeChainId = (() => {
+    const details = challenge?.request?.methodDetails as
+      | Record<string, unknown>
+      | undefined;
+    const id = details?.chainId;
+    return typeof id === "number" ? id : undefined;
+  })();
   const expectedNetwork: Network | undefined =
-    challengeChainId === 4217
-      ? "mainnet"
-      : challengeChainId === 42431
-        ? "testnet"
-        : undefined;
+    challengeChainId !== undefined
+      ? networkForChainId(challengeChainId)
+      : undefined;
   const networkMismatch =
     expectedNetwork !== undefined && expectedNetwork !== network;
 

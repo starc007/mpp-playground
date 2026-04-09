@@ -3,6 +3,8 @@
 import { useState } from "react";
 import type { StepData, StepId } from "@/lib/types";
 import { STEP_COLORS } from "@/lib/types";
+import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 interface InspectorProps {
   stepId: StepId;
@@ -16,8 +18,9 @@ export function Inspector({ stepId, data }: InspectorProps) {
   const colorClass = STEP_COLORS[stepId];
 
   return (
-    <div className="rounded-lg border border-border bg-bg-card overflow-hidden">
-      <div className="flex items-center border-b border-border">
+    <Card className="overflow-hidden p-0 gap-0">
+      {/* Tab bar */}
+      <div className="flex items-center border-b border-border px-2">
         <TabButton
           label="Headers"
           active={tab === "headers"}
@@ -28,8 +31,8 @@ export function Inspector({ stepId, data }: InspectorProps) {
           active={tab === "body"}
           onClick={() => setTab("body")}
         />
-        {data.statusCode && (
-          <div className="ml-auto px-4">
+        {data.statusCode !== undefined && (
+          <div className="ml-auto px-3">
             <span className={`text-xs font-medium ${colorClass}`}>
               {data.statusCode}
             </span>
@@ -37,34 +40,33 @@ export function Inspector({ stepId, data }: InspectorProps) {
         )}
       </div>
 
+      {/* Panel */}
       <div className="p-4 overflow-auto max-h-96">
         {tab === "headers" && (
           <div className="space-y-4">
-            {data.requestHeaders && Object.keys(data.requestHeaders).length > 0 && (
-              <div>
-                <h4 className="text-xs text-text-muted mb-2 uppercase tracking-wider">
-                  Request Headers
-                </h4>
-                <HeaderList headers={data.requestHeaders} />
-              </div>
-            )}
-            {data.responseHeaders && Object.keys(data.responseHeaders).length > 0 && (
-              <div>
-                <h4 className="text-xs text-text-muted mb-2 uppercase tracking-wider">
-                  Response Headers
-                </h4>
-                <HeaderList headers={data.responseHeaders} />
-              </div>
-            )}
+            {data.requestHeaders &&
+              Object.keys(data.requestHeaders).length > 0 && (
+                <HeaderSection
+                  title="Request Headers"
+                  headers={data.requestHeaders}
+                />
+              )}
+            {data.responseHeaders &&
+              Object.keys(data.responseHeaders).length > 0 && (
+                <HeaderSection
+                  title="Response Headers"
+                  headers={data.responseHeaders}
+                />
+              )}
           </div>
         )}
         {tab === "body" && (
-          <pre className="text-sm leading-relaxed whitespace-pre-wrap break-all">
+          <pre className="text-sm leading-relaxed whitespace-pre-wrap break-all font-mono">
             {data.body ? JSON.stringify(data.body, null, 2) : "No body"}
           </pre>
         )}
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -80,26 +82,38 @@ function TabButton({
   return (
     <button
       onClick={onClick}
-      className={`px-4 py-2.5 text-xs font-medium transition-colors border-b-2 ${
+      className={cn(
+        "px-3 py-2.5 text-xs font-medium transition-colors border-b-2 -mb-px",
         active
-          ? "text-text border-accent"
-          : "text-text-muted border-transparent hover:text-text"
-      }`}
+          ? "text-foreground border-primary"
+          : "text-muted-foreground border-transparent hover:text-foreground",
+      )}
     >
       {label}
     </button>
   );
 }
 
-function HeaderList({ headers }: { headers: Record<string, string> }) {
+function HeaderSection({
+  title,
+  headers,
+}: {
+  title: string;
+  headers: Record<string, string>;
+}) {
   return (
-    <div className="space-y-1">
-      {Object.entries(headers).map(([key, value]) => (
-        <div key={key} className="flex gap-2 text-sm">
-          <span className="text-accent shrink-0">{key}:</span>
-          <span className="text-text-muted break-all">{value}</span>
-        </div>
-      ))}
+    <div>
+      <h4 className="text-xs text-muted-foreground mb-2 uppercase tracking-wider">
+        {title}
+      </h4>
+      <div className="space-y-1 font-mono">
+        {Object.entries(headers).map(([key, value]) => (
+          <div key={key} className="flex gap-2 text-sm">
+            <span className="text-primary shrink-0">{key}:</span>
+            <span className="text-muted-foreground break-all">{value}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

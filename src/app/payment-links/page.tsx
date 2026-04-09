@@ -1,12 +1,21 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { Header, Footer } from "@/components/layout";
-import { useNetwork } from "@/components/providers";
+import { useMemo, useState } from "react";
+import { DashboardLayout } from "@/components/dashboard-layout";
 import { TEMPO_CURRENCIES } from "@/lib/currencies";
 import { PaymentLinkPreview } from "@/components/payment-link-preview";
 import { ShareButton } from "@/components/share-button";
-import { NavTabs } from "@/components/nav-tabs";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface FormState {
   amount: string;
@@ -27,8 +36,9 @@ function encodeConfig(config: FormState): string {
   return btoa(json).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
+const ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
+
 export default function PaymentLinksPage() {
-  const { network, setNetwork } = useNetwork();
   const [form, setForm] = useState<FormState>({
     amount: "0.01",
     currency: TEMPO_CURRENCIES[0].address,
@@ -38,9 +48,7 @@ export default function PaymentLinksPage() {
   });
 
   const isValid =
-    form.amount &&
-    form.recipient &&
-    /^0x[a-fA-F0-9]{40}$/.test(form.recipient);
+    Boolean(form.amount) && ADDRESS_REGEX.test(form.recipient);
 
   const linkUrl = useMemo(() => {
     if (!isValid || typeof window === "undefined") return null;
@@ -49,117 +57,101 @@ export default function PaymentLinksPage() {
   }, [form, isValid]);
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <Header network={network} onNetworkChange={setNetwork} />
-
-      <main className="flex-1 px-8 py-8 pt-24 max-w-6xl mx-auto w-full space-y-8">
-        <NavTabs />
-
-        <div>
-          <h2 className="text-lg font-semibold text-text mb-1">
-            Payment Link Generator
-          </h2>
-          <p className="text-xs text-text-muted">
-            Create a hosted payment link backed by mppx. Share it anywhere —
-            anyone with the link can pay.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <DashboardLayout
+      title="Payment Link Generator"
+      description="Create a hosted payment link backed by mppx. Share it anywhere — anyone with the link can pay."
+    >
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="space-y-4">
             <Field label="Amount (USD)">
-              <input
+              <Input
                 type="text"
                 value={form.amount}
                 onChange={(e) => setForm({ ...form, amount: e.target.value })}
                 placeholder="0.01"
-                className="w-full px-4 py-2.5 rounded-lg border border-border bg-bg-card text-sm text-text placeholder:text-text-dim focus:outline-none focus:border-accent/50"
               />
             </Field>
 
             <Field label="Currency">
-              <select
+              <Select
                 value={form.currency}
-                onChange={(e) =>
-                  setForm({ ...form, currency: e.target.value })
+                onValueChange={(v) =>
+                  v && setForm({ ...form, currency: v })
                 }
-                className="w-full px-4 py-2.5 rounded-lg border border-border bg-bg-card text-sm text-text focus:outline-none focus:border-accent/50"
               >
-                {TEMPO_CURRENCIES.map((c) => (
-                  <option key={c.address} value={c.address}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TEMPO_CURRENCIES.map((c) => (
+                    <SelectItem key={c.address} value={c.address}>
+                      {c.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Field>
 
             <Field label="Recipient Address">
-              <input
+              <Input
                 type="text"
                 value={form.recipient}
                 onChange={(e) =>
                   setForm({ ...form, recipient: e.target.value })
                 }
-                placeholder="0x..."
-                className="w-full px-4 py-2.5 rounded-lg border border-border bg-bg-card text-sm text-text placeholder:text-text-dim focus:outline-none focus:border-accent/50 font-mono"
+                placeholder="0x…"
+                className="font-mono"
               />
-              {form.recipient && !isValid && (
-                <p className="text-xs text-error mt-1">
+              {form.recipient && !ADDRESS_REGEX.test(form.recipient) && (
+                <p className="text-xs text-destructive mt-1">
                   Invalid Ethereum address
                 </p>
               )}
             </Field>
 
             <Field label="Description (optional)">
-              <input
+              <Input
                 type="text"
                 value={form.description}
                 onChange={(e) =>
                   setForm({ ...form, description: e.target.value })
                 }
                 placeholder="Coffee for the team"
-                className="w-full px-4 py-2.5 rounded-lg border border-border bg-bg-card text-sm text-text placeholder:text-text-dim focus:outline-none focus:border-accent/50"
               />
             </Field>
 
             <Field label="Network">
               <div className="flex gap-2">
-                <button
+                <Button
+                  variant={form.testnet ? "default" : "outline"}
                   onClick={() => setForm({ ...form, testnet: true })}
-                  className={`flex-1 px-4 py-2.5 rounded-lg border text-sm transition-colors ${
-                    form.testnet
-                      ? "border-accent text-accent bg-accent/10"
-                      : "border-border text-text-muted hover:text-text"
-                  }`}
+                  className="flex-1"
                 >
                   testnet
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant={!form.testnet ? "default" : "outline"}
                   onClick={() => setForm({ ...form, testnet: false })}
-                  className={`flex-1 px-4 py-2.5 rounded-lg border text-sm transition-colors ${
-                    !form.testnet
-                      ? "border-accent text-accent bg-accent/10"
-                      : "border-border text-text-muted hover:text-text"
-                  }`}
+                  className="flex-1"
                 >
                   mainnet
-                </button>
+                </Button>
               </div>
             </Field>
 
             {linkUrl && (
               <div className="space-y-2 pt-2">
-                <label className="text-xs text-text-dim uppercase tracking-wider">
+                <Label className="text-xs text-text-dim uppercase tracking-wider">
                   Generated Link
-                </label>
+                </Label>
                 <div className="flex gap-2">
-                  <input
+                  <Input
                     type="text"
                     readOnly
                     value={linkUrl}
-                    className="flex-1 px-3 py-2 rounded border border-border bg-bg-surface text-xs text-accent font-mono"
+                    className="flex-1 h-9 text-xs font-mono text-primary"
                   />
-                  <ShareButton url={linkUrl} />
+                  <ShareButton url={linkUrl} label="copy" />
                 </div>
               </div>
             )}
@@ -169,18 +161,15 @@ export default function PaymentLinksPage() {
             {linkUrl ? (
               <PaymentLinkPreview url={linkUrl} method="GET" />
             ) : (
-              <div className="rounded-lg border border-border bg-bg-card p-12 text-center">
-                <p className="text-xs text-text-muted">
+              <Card className="p-12 text-center">
+                <p className="text-xs text-muted-foreground">
                   Fill in the form to preview your payment link
                 </p>
-              </div>
+              </Card>
             )}
           </div>
-        </div>
-      </main>
-
-      <Footer />
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }
 
@@ -192,10 +181,10 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <div>
-      <label className="block text-xs text-text-dim uppercase tracking-wider mb-2">
+    <div className="space-y-2">
+      <Label className="text-xs text-text-dim uppercase tracking-wider">
         {label}
-      </label>
+      </Label>
       {children}
     </div>
   );

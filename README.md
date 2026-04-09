@@ -77,4 +77,4 @@ MPP_SECRET_KEY=your-secret-key   # HMAC secret for signing challenge IDs
 
 ## License
 
-MIT
+HEHEHEHE
