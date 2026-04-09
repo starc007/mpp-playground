@@ -141,19 +141,24 @@ export default function SchedulerPage() {
         token: currency as `0x${string}`,
       });
 
-      // Prepare WITHOUT validAfter so eth_estimateGas works against the
-      // current block timestamp. The RPC rejects gas estimation for txs
-      // whose validAfter is in the future.
+      // Prepare WITHOUT validAfter/validBefore so eth_estimateGas works
+      // against the current block timestamp. Also disable the auto
+      // expiring-nonce behaviour (which sets validBefore = now + 25s)
+      // by passing nonceKey: 0n — otherwise the auto validBefore would
+      // be before our future validAfter, which is invalid.
       const prepared = await prepareTransactionRequest(walletClient, {
         account: walletClient.account,
         ...transferCall,
+        nonceKey: 0n,
       } as never);
 
-      // Inject the scheduling timestamps AFTER gas estimation, before signing.
+      // Inject the scheduling timestamps AFTER gas estimation.
+      // Default validBefore to validAfter + 1 hour if not specified.
+      const resolvedValidBefore = validBefore ?? validAfter + 3600;
       const scheduled = {
         ...prepared,
         validAfter,
-        ...(validBefore ? { validBefore } : {}),
+        validBefore: resolvedValidBefore,
       };
 
       // Sign without broadcasting — returns the serialized signed tx
