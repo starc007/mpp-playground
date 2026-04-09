@@ -185,34 +185,20 @@ export function usePlayground() {
       const { Mppx, tempo, session } = await import("mppx/client");
       const { getConnectorClient } = await import("wagmi/actions");
 
-      const walletClient = await getConnectorClient(config);
-
       const isSession = challenge.intent === "session";
 
-      // When the challenge has `methodDetails.feePayer: true`, the server
-      // is advertising that it will sponsor gas, so we should use pull mode
-      // (client signs, server broadcasts). Push mode with a smart contract
-      // wallet (Tempo Wallet passkey account) runs into gas estimation
-      // issues that make the token transfer revert. Pull mode sidesteps it
-      // by letting the server's fee payer control gas.
-      const methodDetails = challenge.request?.methodDetails as
-        | { feePayer?: boolean }
-        | undefined;
-      const mode: "push" | "pull" = methodDetails?.feePayer ? "pull" : "push";
+      // Follow the wagmi pattern from the docs — pass a factory that
+      // forwards `parameters` (including chainId) to getConnectorClient
+      // so the returned wallet client is bound to the right chain.
+      // wagmi types the chainId parameter as a union of configured chains
+      // (`4217 | 42431`), whereas mppx passes a plain `number`. This cast
+      // is safe because wagmi handles unknown chain IDs gracefully.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const getClient = (params: any) => getConnectorClient(config, params);
 
       const methods = isSession
-        ? [
-            session({
-              getClient: () => walletClient,
-              deposit: "1",
-            }),
-          ]
-        : [
-            tempo({
-              getClient: () => walletClient,
-              mode,
-            }),
-          ];
+        ? [session({ getClient, deposit: "1" })]
+        : [tempo({ getClient })];
 
       const mppx = Mppx.create({ methods, polyfill: false });
 
