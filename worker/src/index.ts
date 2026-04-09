@@ -68,6 +68,11 @@ app.post("/schedule", async (c) => {
         recipient: c.env.RECIPIENT_ADDRESS as `0x${string}`,
         testnet: true,
         html: true,
+        // Enable fee payer so the challenge includes feePayer: true.
+        // This makes the client use pull mode (client signs, server
+        // broadcasts) which avoids the WebAuthn gas estimation bug
+        // that causes push mode to hang on passkey wallets.
+        feePayer: true,
       }),
     ],
   });
