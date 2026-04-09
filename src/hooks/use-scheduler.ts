@@ -8,13 +8,13 @@ import { prepareTransactionRequest, signTransaction } from "viem/actions";
 import { Actions } from "viem/tempo";
 import { Mppx, tempo } from "mppx/client";
 import { useNetwork } from "@/components/providers";
-import { TEMPO_CURRENCIES } from "./currencies";
+import { TEMPO_CURRENCIES } from "../lib/currencies";
 import {
   SCHEDULER_API,
   toLocalDatetime,
   type ScheduleResult,
   type ScheduleStatus,
-} from "./scheduler-types";
+} from "../lib/scheduler-types";
 
 export function useScheduler() {
   const { address, isConnected } = useAccount();
@@ -61,9 +61,7 @@ export function useScheduler() {
     try {
       const walletClient = await getConnectorClient(config);
 
-      const validAfter = Math.floor(
-        new Date(validAfterDate).getTime() / 1000,
-      );
+      const validAfter = Math.floor(new Date(validAfterDate).getTime() / 1000);
       const validBefore = validBeforeDate
         ? Math.floor(new Date(validBeforeDate).getTime() / 1000)
         : undefined;
@@ -102,9 +100,7 @@ export function useScheduler() {
     if (!signedTxBytes || !address) return;
 
     try {
-      const validAfter = Math.floor(
-        new Date(validAfterDate).getTime() / 1000,
-      );
+      const validAfter = Math.floor(new Date(validAfterDate).getTime() / 1000);
       const validBefore = validBeforeDate
         ? Math.floor(new Date(validBeforeDate).getTime() / 1000)
         : undefined;

@@ -10,9 +10,9 @@ import type {
   DetectionInfo,
   ChallengeData,
   Network,
-} from "./types";
-import { networkForChainId, WEBAUTHN_GAS_BUFFER } from "./chains";
-import { probeEndpoint, payEndpoint } from "./api";
+} from "../lib/types";
+import { networkForChainId, WEBAUTHN_GAS_BUFFER } from "../lib/chains";
+import { probeEndpoint, payEndpoint } from "../lib/api";
 
 const INITIAL_STEPS: Step[] = [
   { id: "request", label: "Request", status: "idle" },

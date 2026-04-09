@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TEMPO_CURRENCIES } from "@/lib/currencies";
-import { useScheduler } from "@/lib/use-scheduler";
+import { useScheduler } from "@/hooks/use-scheduler";
 
 export default function SchedulerPage() {
   const s = useScheduler();
@@ -225,7 +225,6 @@ export default function SchedulerPage() {
                         tx={tx}
                         onCancel={s.handleCancel}
                         onDelete={s.handleDelete}
-                        compact
                       />
                     ))}
                   </div>

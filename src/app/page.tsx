@@ -1,6 +1,6 @@
 "use client";
 
-import { usePlayground } from "@/lib/use-playground";
+import { usePlayground } from "@/hooks/use-playground";
 import { ProbeInput } from "@/components/probe-input";
 import { StepFlow } from "@/components/step-flow";
 import { Inspector } from "@/components/inspector";
