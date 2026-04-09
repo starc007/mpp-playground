@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, Geist } from "next/font/google";
+import { Geist, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { cn } from "@/lib/utils";
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+const geistSans = Geist({
+  subsets: ["latin"],
+  variable: "--font-geist-sans",
+});
 
 const ibmPlexMono = IBM_Plex_Mono({
   variable: "--font-ibm-plex-mono",
@@ -15,7 +18,7 @@ const ibmPlexMono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "MPP Playground",
   description:
-    "Interactive browser-based tool for inspecting and testing MPP endpoints",
+    "Inspect MPP endpoints, pay with a passkey-based Tempo Wallet, and generate hosted payment links — all in one place.",
 };
 
 export default function RootLayout({
@@ -24,7 +27,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn("h-full", "antialiased", ibmPlexMono.variable, "font-sans", geist.variable)}>
+    <html
+      lang="en"
+      className={cn(
+        "dark h-full antialiased",
+        geistSans.variable,
+        ibmPlexMono.variable,
+      )}
+    >
       <body className="min-h-full flex flex-col">
         <Providers>{children}</Providers>
       </body>
