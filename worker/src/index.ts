@@ -32,7 +32,13 @@ interface ScheduledTx {
 
 const app = new Hono<{ Bindings: Env }>();
 
-app.use("*", cors());
+app.use(
+  "*",
+  cors({
+    origin: "*",
+    exposeHeaders: ["WWW-Authenticate", "Payment-Receipt"],
+  }),
+);
 
 // Health check
 app.get("/", (c) =>
