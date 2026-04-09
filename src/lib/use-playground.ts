@@ -215,7 +215,7 @@ export function usePlayground() {
 
       const methods = isSession
         ? [session({ getClient, deposit: "1" })]
-        : [tempo({ mode: "pull", getClient })];
+        : [tempo({ mode: "push", getClient })];
 
       const mppx = Mppx.create({ methods, polyfill: false });
 
