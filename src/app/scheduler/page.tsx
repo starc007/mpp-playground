@@ -301,6 +301,19 @@ export default function SchedulerPage() {
     }
   }
 
+  async function handleDelete(id: string) {
+    if (!address) return;
+    try {
+      await fetch(`${SCHEDULER_API}/schedule/${id}?action=delete`, {
+        method: "DELETE",
+        headers: { "x-owner": address.toLowerCase() },
+      });
+      handleLoadMyTxs();
+    } catch {
+      // silent
+    }
+  }
+
   async function handleLookup() {
     if (!lookupId) return;
     try {
@@ -344,11 +357,7 @@ export default function SchedulerPage() {
                   </p>
                   <p>Broadcast at: {result.estimatedBroadcast}</p>
                 </div>
-                <Button
-                  variant="outline"
-                  onClick={resetForm}
-                  className="w-full"
-                >
+                <Button onClick={resetForm} className="w-full">
                   schedule another
                 </Button>
               </div>
@@ -487,7 +496,7 @@ export default function SchedulerPage() {
                 </Button>
               </div>
               {statusResult && (
-                <TxStatusCard tx={statusResult} onCancel={handleCancel} />
+                <TxStatusCard tx={statusResult} onCancel={handleCancel} onDelete={handleDelete} />
               )}
             </CardContent>
           </Card>
@@ -519,6 +528,7 @@ export default function SchedulerPage() {
                         key={tx.id}
                         tx={tx}
                         onCancel={handleCancel}
+                        onDelete={handleDelete}
                         compact
                       />
                     ))}
@@ -557,10 +567,12 @@ function Field({
 function TxStatusCard({
   tx,
   onCancel,
+  onDelete,
   compact,
 }: {
   tx: ScheduleStatus;
   onCancel: (id: string) => void;
+  onDelete?: (id: string) => void;
   compact?: boolean;
 }) {
   return (
@@ -601,16 +613,28 @@ function TxStatusCard({
           {tx.memo && <div className="text-muted-foreground">{tx.memo}</div>}
         </>
       )}
-      {tx.status === "pending" && (
-        <Button
-          variant="ghost"
-          size="xs"
-          onClick={() => onCancel(tx.id)}
-          className="text-destructive hover:text-destructive"
-        >
-          cancel
-        </Button>
-      )}
+      <div className="flex items-center gap-2">
+        {tx.status === "pending" && (
+          <Button
+            variant="ghost"
+            size="xs"
+            onClick={() => onCancel(tx.id)}
+            className="text-destructive hover:text-destructive"
+          >
+            cancel
+          </Button>
+        )}
+        {onDelete && tx.status !== "pending" && (
+          <Button
+            variant="ghost"
+            size="xs"
+            onClick={() => onDelete(tx.id)}
+            className="text-muted-foreground hover:text-destructive"
+          >
+            delete
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

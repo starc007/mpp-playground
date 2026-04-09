@@ -193,11 +193,14 @@ app.get("/schedule", async (c) => {
 });
 
 // ---------------------------------------------------------------------------
-// DELETE /schedule/:id — cancel a pending tx (owner only)
+// DELETE /schedule/:id — cancel or delete a tx (owner only)
+// ?action=delete  → hard delete (removes record)
+// default         → soft cancel (sets status to 'cancelled', pending only)
 // ---------------------------------------------------------------------------
 
 app.delete("/schedule/:id", async (c) => {
   const { id } = c.req.param();
+  const action = c.req.query("action");
   const ownerHeader = c.req.header("x-owner");
   if (!ownerHeader) {
     return c.json({ error: "x-owner header required" }, 401);
@@ -213,6 +216,16 @@ app.delete("/schedule/:id", async (c) => {
   if (row.owner !== ownerHeader.toLowerCase()) {
     return c.json({ error: "Not authorized" }, 403);
   }
+
+  // Hard delete — remove the record entirely
+  if (action === "delete") {
+    await c.env.DB.prepare("DELETE FROM scheduled_txs WHERE id = ?")
+      .bind(id)
+      .run();
+    return c.json({ id, status: "deleted" });
+  }
+
+  // Soft cancel — only for pending txs
   if (row.status !== "pending") {
     return c.json({ error: `Cannot cancel: status is ${row.status}` }, 400);
   }
