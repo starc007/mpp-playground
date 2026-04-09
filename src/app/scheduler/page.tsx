@@ -238,7 +238,9 @@ export default function SchedulerPage() {
         headers: { "WWW-Authenticate": wwwAuth },
       });
 
+      console.log("Creating MPP credential with challenge:", wwwAuth);
       const credential = await mppx.createCredential(fakeResponse);
+      console.log("Got credential:", credential);
 
       setError("submitting schedule…");
 
