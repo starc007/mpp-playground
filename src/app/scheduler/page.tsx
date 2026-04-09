@@ -2,6 +2,11 @@
 
 import { useState } from "react";
 import { useAccount } from "wagmi";
+import { getConnectorClient } from "wagmi/actions";
+import { parseUnits } from "viem";
+import { prepareTransactionRequest, signTransaction } from "viem/actions";
+import { Actions } from "viem/tempo";
+import { Mppx, tempo } from "mppx/client";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useNetwork } from "@/components/providers";
 import { Button } from "@/components/ui/button";
@@ -120,14 +125,6 @@ export default function SchedulerPage() {
     setStep("signing");
 
     try {
-      const { getConnectorClient } = await import("wagmi/actions");
-      const {
-        prepareTransactionRequest,
-        signTransaction,
-      } = await import("viem/actions");
-      const { Actions } = await import("viem/tempo");
-      const { parseUnits } = await import("viem");
-
       const walletClient = await getConnectorClient(config);
 
       const validAfter = Math.floor(
@@ -217,9 +214,6 @@ export default function SchedulerPage() {
       // Got 402 — create mppx credential and retry
       const wwwAuth = probeRes.headers.get("www-authenticate");
       if (!wwwAuth) throw new Error("No WWW-Authenticate header in 402");
-
-      const { Mppx, tempo } = await import("mppx/client");
-      const { getConnectorClient } = await import("wagmi/actions");
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const getClient = (params: any) => getConnectorClient(config, params);
