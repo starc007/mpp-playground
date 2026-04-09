@@ -3,15 +3,27 @@
 import { useState } from "react";
 import { useAccount } from "wagmi";
 import { DashboardLayout } from "@/components/dashboard-layout";
+import { useNetwork } from "@/components/providers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { TEMPO_CURRENCIES } from "@/lib/currencies";
 
 const SCHEDULER_API =
   process.env.NEXT_PUBLIC_SCHEDULER_URL ?? "http://localhost:8787";
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
 interface ScheduleResult {
   id: string;
@@ -33,8 +45,21 @@ interface ScheduleStatus {
   memo: string | null;
 }
 
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
 function formatDate(unix: number): string {
   return new Date(unix * 1000).toLocaleString();
+}
+
+function toLocalDatetime(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  const h = String(date.getHours()).padStart(2, "0");
+  const min = String(date.getMinutes()).padStart(2, "0");
+  return `${y}-${m}-${d}T${h}:${min}`;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -45,44 +70,123 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: "bg-muted text-muted-foreground",
 };
 
+// ---------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------
+
 export default function SchedulerPage() {
   const { address, isConnected } = useAccount();
+  const { config } = useNetwork();
 
-  // Schedule form
-  const [txBytes, setTxBytes] = useState("");
-  const [validAfterDate, setValidAfterDate] = useState("");
-  const [validBeforeDate, setValidBeforeDate] = useState("");
+  // Transfer details
+  const [recipient, setRecipient] = useState("");
+  const [amount, setAmount] = useState("");
+  const [currency, setCurrency] = useState(TEMPO_CURRENCIES[0].address);
   const [memo, setMemo] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Schedule timing
+  const defaultAfter = new Date(Date.now() + 5 * 60 * 1000); // +5 min
+  const [validAfterDate, setValidAfterDate] = useState(
+    toLocalDatetime(defaultAfter),
+  );
+  const [validBeforeDate, setValidBeforeDate] = useState("");
+
+  // Flow state
+  const [step, setStep] = useState<
+    "form" | "signing" | "paying" | "done"
+  >("form");
+  const [signedTxBytes, setSignedTxBytes] = useState("");
   const [result, setResult] = useState<ScheduleResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Status lookup
   const [lookupId, setLookupId] = useState("");
-  const [statusResult, setStatusResult] = useState<ScheduleStatus | null>(null);
-  const [statusError, setStatusError] = useState<string | null>(null);
-
-  // My txs
+  const [statusResult, setStatusResult] = useState<ScheduleStatus | null>(
+    null,
+  );
   const [myTxs, setMyTxs] = useState<ScheduleStatus[]>([]);
 
-  async function handleSchedule() {
-    if (!txBytes || !validAfterDate || !address) return;
+  const isFormValid =
+    isConnected &&
+    /^0x[a-fA-F0-9]{40}$/.test(recipient) &&
+    Number(amount) > 0 &&
+    validAfterDate;
 
-    setIsSubmitting(true);
+  // Step 1: Sign the transaction with the wallet (validAfter set, NOT broadcast)
+  async function handleSign() {
+    if (!address || !isFormValid) return;
+
     setError(null);
-    setResult(null);
+    setStep("signing");
 
     try {
-      const validAfter = Math.floor(new Date(validAfterDate).getTime() / 1000);
+      const { getConnectorClient } = await import("wagmi/actions");
+      const {
+        prepareTransactionRequest,
+        signTransaction,
+      } = await import("viem/actions");
+      const { Actions } = await import("viem/tempo");
+      const { parseUnits } = await import("viem");
+
+      const walletClient = await getConnectorClient(config);
+
+      const validAfter = Math.floor(
+        new Date(validAfterDate).getTime() / 1000,
+      );
       const validBefore = validBeforeDate
         ? Math.floor(new Date(validBeforeDate).getTime() / 1000)
         : undefined;
 
-      const res = await fetch(`${SCHEDULER_API}/schedule`, {
+      // Build the TIP-20 transfer call
+      const transferCall = Actions.token.transfer.call({
+        to: recipient as `0x${string}`,
+        amount: parseUnits(amount, 6),
+        token: currency as `0x${string}`,
+      });
+
+      // Prepare the Tempo tx with validAfter/validBefore
+      const prepared = await prepareTransactionRequest(walletClient, {
+        account: walletClient.account,
+        ...transferCall,
+        validAfter,
+        ...(validBefore ? { validBefore } : {}),
+      } as never);
+
+      // Sign without broadcasting — returns the serialized signed tx
+      const signed = await signTransaction(walletClient, prepared as never);
+
+      setSignedTxBytes(signed);
+      setStep("paying");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Signing failed";
+      setError(msg.split("Request Arguments:")[0]?.trim() || msg);
+      setStep("form");
+    }
+  }
+
+  // Step 2: Send signed bytes to the scheduler worker and pay the 402
+  async function handleSchedule() {
+    if (!signedTxBytes || !address) return;
+
+    setError(null);
+
+    try {
+      const validAfter = Math.floor(
+        new Date(validAfterDate).getTime() / 1000,
+      );
+      const validBefore = validBeforeDate
+        ? Math.floor(new Date(validBeforeDate).getTime() / 1000)
+        : undefined;
+
+      // First call → 402 challenge
+      const probeRes = await fetch(`${SCHEDULER_API}/schedule`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
         body: JSON.stringify({
-          txBytes,
+          txBytes: signedTxBytes,
           validAfter,
           validBefore,
           owner: address,
@@ -90,41 +194,74 @@ export default function SchedulerPage() {
         }),
       });
 
-      if (res.status === 402) {
-        setError(
-          "Payment required — this endpoint charges $0.10 per schedule via MPP. Open the URL directly in a browser to pay.",
-        );
-        return;
-      }
-
-      const data = await res.json();
-      if (!res.ok) {
+      if (probeRes.status !== 402) {
+        // Either succeeded without payment (shouldn't happen) or error
+        const data = await probeRes.json();
+        if (probeRes.ok) {
+          setResult(data as ScheduleResult);
+          setStep("done");
+          return;
+        }
         throw new Error(
           (data as { error?: string }).error ?? "Schedule failed",
         );
       }
-      setResult(data as ScheduleResult);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Schedule failed");
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
 
-  async function handleLookup() {
-    if (!lookupId) return;
-    setStatusError(null);
-    setStatusResult(null);
+      // Got 402 — create mppx credential and retry
+      const wwwAuth = probeRes.headers.get("www-authenticate");
+      if (!wwwAuth) throw new Error("No WWW-Authenticate header in 402");
 
-    try {
-      const res = await fetch(`${SCHEDULER_API}/schedule/${lookupId}`);
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error((data as { error?: string }).error ?? "Lookup failed");
+      const { Mppx, tempo } = await import("mppx/client");
+      const { getConnectorClient } = await import("wagmi/actions");
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const getClient = (params: any) => getConnectorClient(config, params);
+
+      const mppx = Mppx.create({
+        methods: [tempo({ getClient })],
+        polyfill: false,
+      });
+
+      const fakeResponse = new Response(null, {
+        status: 402,
+        headers: { "WWW-Authenticate": wwwAuth },
+      });
+
+      const credential = await mppx.createCredential(fakeResponse);
+
+      // Retry with credential
+      const payRes = await fetch(`${SCHEDULER_API}/schedule`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: credential.startsWith("Payment ")
+            ? credential
+            : `Payment ${credential}`,
+        },
+        body: JSON.stringify({
+          txBytes: signedTxBytes,
+          validAfter,
+          validBefore,
+          owner: address,
+          memo: memo || undefined,
+        }),
+      });
+
+      const payData = await payRes.json();
+
+      if (!payRes.ok) {
+        throw new Error(
+          (payData as { error?: string }).error ?? "Schedule failed after payment",
+        );
       }
-      setStatusResult(data as ScheduleStatus);
+
+      setResult(payData as ScheduleResult);
+      setStep("done");
     } catch (err) {
-      setStatusError(err instanceof Error ? err.message : "Lookup failed");
+      const msg = err instanceof Error ? err.message : "Schedule failed";
+      setError(msg.split("Request Arguments:")[0]?.trim() || msg);
+      setStep("form");
     }
   }
 
@@ -144,111 +281,176 @@ export default function SchedulerPage() {
   async function handleCancel(id: string) {
     if (!address) return;
     try {
-      const res = await fetch(`${SCHEDULER_API}/schedule/${id}`, {
+      await fetch(`${SCHEDULER_API}/schedule/${id}`, {
         method: "DELETE",
         headers: { "x-owner": address.toLowerCase() },
       });
-      if (res.ok) {
-        handleLoadMyTxs();
-      }
+      handleLoadMyTxs();
     } catch {
       // silent
     }
   }
 
+  async function handleLookup() {
+    if (!lookupId) return;
+    try {
+      const res = await fetch(`${SCHEDULER_API}/schedule/${lookupId}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error((data as { error?: string }).error ?? "Not found");
+      setStatusResult(data as ScheduleStatus);
+    } catch {
+      setStatusResult(null);
+    }
+  }
+
+  function resetForm() {
+    setStep("form");
+    setSignedTxBytes("");
+    setResult(null);
+    setError(null);
+  }
+
   return (
     <DashboardLayout
       title="TX Scheduler"
-      description="Schedule pre-signed Tempo transactions for timed broadcast. $0.10 per schedule via MPP."
+      description="Sign a Tempo transaction with a future validAfter timestamp. Pay $0.10 via MPP to schedule it. The worker broadcasts when the time arrives."
     >
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Schedule form */}
+        {/* Left: Schedule form */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">Schedule a Transaction</CardTitle>
+            <CardTitle className="text-sm">
+              {step === "done" ? "Scheduled" : "Schedule a Transfer"}
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label className="text-xs text-text-dim uppercase tracking-wider">
-                Signed TX Bytes
-              </Label>
-              <Textarea
-                value={txBytes}
-                onChange={(e) => setTxBytes(e.target.value)}
-                placeholder="0x..."
-                rows={4}
-                className="font-mono text-xs"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs text-text-dim uppercase tracking-wider">
-                Broadcast After (validAfter)
-              </Label>
-              <Input
-                type="datetime-local"
-                value={validAfterDate}
-                onChange={(e) => setValidAfterDate(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs text-text-dim uppercase tracking-wider">
-                Expires (validBefore, optional)
-              </Label>
-              <Input
-                type="datetime-local"
-                value={validBeforeDate}
-                onChange={(e) => setValidBeforeDate(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs text-text-dim uppercase tracking-wider">
-                Memo (optional)
-              </Label>
-              <Input
-                type="text"
-                value={memo}
-                onChange={(e) => setMemo(e.target.value)}
-                placeholder="payroll batch #42"
-              />
-            </div>
-
-            <Button
-              onClick={handleSchedule}
-              disabled={
-                !txBytes || !validAfterDate || !isConnected || isSubmitting
-              }
-              className="w-full"
-            >
-              {isSubmitting ? "scheduling…" : "schedule ($0.10)"}
-            </Button>
-
-            {!isConnected && (
-              <p className="text-xs text-muted-foreground text-center">
-                Connect your wallet to schedule
-              </p>
-            )}
-
-            {error && (
-              <div className="px-3 py-2 rounded-lg border border-destructive/30 bg-destructive/5 text-destructive text-xs break-all">
-                {error}
+            {step === "done" && result ? (
+              <div className="space-y-3">
+                <div className="px-3 py-3 rounded-lg border border-step-receipt/30 bg-step-receipt/5 text-step-receipt text-xs space-y-1.5">
+                  <p className="font-medium">Transaction scheduled</p>
+                  <p>
+                    ID:{" "}
+                    <span className="font-mono">{result.id}</span>
+                  </p>
+                  <p>Broadcast at: {result.estimatedBroadcast}</p>
+                </div>
+                <Button variant="outline" onClick={resetForm} className="w-full">
+                  schedule another
+                </Button>
               </div>
-            )}
+            ) : (
+              <>
+                <Field label="Recipient">
+                  <Input
+                    value={recipient}
+                    onChange={(e) => setRecipient(e.target.value)}
+                    placeholder="0x…"
+                    className="font-mono"
+                    disabled={step !== "form"}
+                  />
+                </Field>
 
-            {result && (
-              <div className="px-3 py-2 rounded-lg border border-step-receipt/30 bg-step-receipt/5 text-step-receipt text-xs space-y-1">
-                <p>
-                  Scheduled: <span className="font-mono">{result.id}</span>
-                </p>
-                <p>Broadcast at: {result.estimatedBroadcast}</p>
-              </div>
+                <Field label="Amount">
+                  <Input
+                    type="number"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder="0.10"
+                    step="0.01"
+                    disabled={step !== "form"}
+                  />
+                </Field>
+
+                <Field label="Token">
+                  <Select
+                    value={currency}
+                    onValueChange={(v) => v && setCurrency(v)}
+                    disabled={step !== "form"}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TEMPO_CURRENCIES.map((c) => (
+                        <SelectItem key={c.address} value={c.address}>
+                          {c.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+
+                <Field label="Broadcast After">
+                  <Input
+                    type="datetime-local"
+                    value={validAfterDate}
+                    onChange={(e) => setValidAfterDate(e.target.value)}
+                    disabled={step !== "form"}
+                  />
+                </Field>
+
+                <Field label="Expires (optional)">
+                  <Input
+                    type="datetime-local"
+                    value={validBeforeDate}
+                    onChange={(e) => setValidBeforeDate(e.target.value)}
+                    disabled={step !== "form"}
+                  />
+                </Field>
+
+                <Field label="Memo (optional)">
+                  <Input
+                    value={memo}
+                    onChange={(e) => setMemo(e.target.value)}
+                    placeholder="payroll batch #42"
+                    disabled={step !== "form"}
+                  />
+                </Field>
+
+                {step === "form" && (
+                  <Button
+                    onClick={handleSign}
+                    disabled={!isFormValid}
+                    className="w-full"
+                  >
+                    sign with wallet
+                  </Button>
+                )}
+
+                {step === "signing" && (
+                  <Button disabled className="w-full">
+                    signing…
+                  </Button>
+                )}
+
+                {step === "paying" && (
+                  <div className="space-y-3">
+                    <div className="px-3 py-2 rounded-lg border border-step-challenge/30 bg-step-challenge/5 text-step-challenge text-xs">
+                      Transaction signed. Pay $0.10 to schedule.
+                    </div>
+                    <Button onClick={handleSchedule} className="w-full">
+                      pay & schedule ($0.10)
+                    </Button>
+                  </div>
+                )}
+
+                {!isConnected && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    Connect your wallet to schedule
+                  </p>
+                )}
+
+                {error && (
+                  <div className="px-3 py-2 rounded-lg border border-destructive/30 bg-destructive/5 text-destructive text-xs break-all whitespace-pre-wrap max-h-24 overflow-auto">
+                    {error}
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
 
-        {/* Status lookup + my txs */}
+        {/* Right: Status + My TXs */}
         <div className="space-y-6">
           <Card>
             <CardHeader>
@@ -257,25 +459,15 @@ export default function SchedulerPage() {
             <CardContent className="space-y-3">
               <div className="flex gap-2">
                 <Input
-                  type="text"
                   value={lookupId}
                   onChange={(e) => setLookupId(e.target.value)}
                   placeholder="schedule ID"
                   className="font-mono text-xs"
                 />
-                <Button
-                  variant="outline"
-                  onClick={handleLookup}
-                  disabled={!lookupId}
-                >
+                <Button variant="outline" onClick={handleLookup} disabled={!lookupId}>
                   check
                 </Button>
               </div>
-
-              {statusError && (
-                <p className="text-xs text-destructive">{statusError}</p>
-              )}
-
               {statusResult && (
                 <TxStatusCard tx={statusResult} onCancel={handleCancel} />
               )}
@@ -313,6 +505,27 @@ export default function SchedulerPage() {
         </div>
       </div>
     </DashboardLayout>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Components
+// ---------------------------------------------------------------------------
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label className="text-xs text-text-dim uppercase tracking-wider">
+        {label}
+      </Label>
+      {children}
+    </div>
   );
 }
 
