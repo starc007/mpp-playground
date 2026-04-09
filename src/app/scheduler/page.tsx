@@ -124,7 +124,27 @@ export default function SchedulerPage() {
     setStep("signing");
 
     try {
+      const { createWalletClient, custom } = await import("viem");
+      const { useConnectorClient } = await import("wagmi");
+      void useConnectorClient; // unused, just importing viem
+
+      // Get the main wallet client (has fee payer transport)
       const walletClient = await getConnectorClient(config);
+      const account = walletClient.account;
+
+      // Create a RAW wallet client without the fee payer transport.
+      // The tempoWallet connector's feePayerUrl wraps all requests
+      // through the fee payer, making signTransaction produce a 0x78
+      // (fee-payer envelope) instead of a plain 0x76 (sender-signed).
+      // Scheduled txs need 0x76 because the cron worker broadcasts
+      // them directly via eth_sendRawTransaction.
+      const chain =
+        walletClient.chain ?? (await import("viem/chains")).tempoModerato;
+      const rawClient = createWalletClient({
+        account,
+        chain,
+        transport: custom(walletClient.transport),
+      });
 
       const validAfter = Math.floor(new Date(validAfterDate).getTime() / 1000);
       const validBefore = validBeforeDate
@@ -138,36 +158,25 @@ export default function SchedulerPage() {
         token: currency as `0x${string}`,
       });
 
-      // Prepare WITHOUT validAfter/validBefore so eth_estimateGas works
-      // against the current block timestamp. Also disable the auto
-      // expiring-nonce behaviour (which sets validBefore = now + 25s)
-      // by passing nonceKey: 0n — otherwise the auto validBefore would
-      // be before our future validAfter, which is invalid.
-      const prepared = await prepareTransactionRequest(walletClient, {
-        account: walletClient.account,
+      // Prepare WITHOUT validAfter and WITHOUT fee payer.
+      // - No validAfter: eth_estimateGas rejects future-dated txs
+      // - nonceKey 0n: disables expiring nonces (auto validBefore = now+25s)
+      const prepared = await prepareTransactionRequest(rawClient, {
+        account,
         ...transferCall,
         nonceKey: 0n,
-        // Disable fee payer so we get a plain 0x76 sender-signed tx.
-        // With feePayer enabled, signTransaction produces a 0x78 envelope
-        // that needs the fee payer to co-sign — it can't be broadcast raw
-        // via eth_sendRawTransaction later.
-        feePayer: false,
       } as never);
 
       // Inject the scheduling timestamps AFTER gas estimation.
-      // Default validBefore to validAfter + 1 hour if not specified.
       const resolvedValidBefore = validBefore ?? validAfter + 3600;
       const scheduled = {
         ...prepared,
         validAfter,
         validBefore: resolvedValidBefore,
-        // Ensure no fee payer fields leak into the signed tx
-        feePayer: undefined,
-        feePayerSignature: undefined,
       };
 
-      // Sign without broadcasting — returns the serialized signed tx
-      const signed = await signTransaction(walletClient, scheduled as never);
+      // Sign without broadcasting — returns the serialized 0x76 tx
+      const signed = await signTransaction(rawClient, scheduled as never);
 
       setSignedTxBytes(signed);
       setStep("paying");
