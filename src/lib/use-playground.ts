@@ -189,6 +189,16 @@ export function usePlayground() {
 
       const isSession = challenge.intent === "session";
 
+      // When the challenge has `methodDetails.feePayer: true`, the server
+      // expects pull mode (client signs, server broadcasts with sponsored
+      // gas). Otherwise default to push mode (client broadcasts directly).
+      const methodDetails = challenge.request?.methodDetails as
+        | { feePayer?: boolean }
+        | undefined;
+      const mode: "push" | "pull" = methodDetails?.feePayer
+        ? "pull"
+        : "push";
+
       const methods = isSession
         ? [
             session({
@@ -199,7 +209,7 @@ export function usePlayground() {
         : [
             tempo({
               getClient: () => walletClient,
-              mode: "push",
+              mode,
             }),
           ];
 
