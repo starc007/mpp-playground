@@ -15,6 +15,7 @@ const eslintConfig = defineConfig([
     // Third-party build output + generated components:
     ".vercel/**",
     "src/components/ui/**",
+    "worker/**",
   ]),
 ]);
 

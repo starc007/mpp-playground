@@ -4,8 +4,13 @@ import { tempo, tempoModerato } from "viem/chains";
 import type { Network } from "./types";
 import { FEE_SPONSOR_URL } from "./chains";
 
-export function createWagmiConfig(network: Network) {
-  const feePayerUrl = FEE_SPONSOR_URL[network];
+export function createWagmiConfig(
+  network: Network,
+  options?: { disableFeePayer?: boolean },
+) {
+  const feePayerUrl = options?.disableFeePayer
+    ? undefined
+    : FEE_SPONSOR_URL[network];
 
   if (network === "testnet") {
     return createConfig({
