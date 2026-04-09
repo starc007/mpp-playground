@@ -13,19 +13,16 @@ const NAV_ITEMS = [
   {
     href: "/",
     label: "MPP Inspector",
-    description: "Probe any 402 endpoint",
     icon: Search,
   },
   {
     href: "/payment-links",
     label: "Payment Links",
-    description: "Generate hosted payment URLs",
     icon: Link2,
   },
   {
     href: "/html",
     label: "HTML Builder",
-    description: "Customize the payment UI",
     icon: Code2,
   },
 ] as const;
@@ -42,6 +39,14 @@ export function Sidebar() {
         <span className="text-xs font-semibold tracking-wide uppercase">
           MPP Playground
         </span>
+      </div>
+
+      {/* Network */}
+      <div className="px-4 pt-4 pb-3 border-b border-border">
+        <div className="text-[10px] text-text-dim uppercase tracking-wider mb-1.5">
+          Network
+        </div>
+        <NetworkSelector network={network} onChange={setNetwork} />
       </div>
 
       {/* Nav */}
@@ -79,20 +84,9 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Footer: network + wallet */}
-      <div className="border-t border-border p-4 space-y-3">
-        <div>
-          <div className="text-[10px] text-text-dim uppercase tracking-wider mb-1.5">
-            Network
-          </div>
-          <NetworkSelector network={network} onChange={setNetwork} />
-        </div>
-        <div>
-          <div className="text-[10px] text-text-dim uppercase tracking-wider mb-1.5">
-            Wallet
-          </div>
-          <WalletBar />
-        </div>
+      {/* Wallet */}
+      <div className="border-t border-border p-4">
+        <WalletBar />
       </div>
     </aside>
   );

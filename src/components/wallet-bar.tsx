@@ -2,7 +2,6 @@
 
 import { useAccount, useConnect, useDisconnect, useReadContract } from "wagmi";
 import { formatUnits } from "viem";
-import { useNetwork } from "./providers";
 import { TEMPO_CURRENCIES, ERC20_BALANCE_ABI } from "@/lib/currencies";
 import { Button } from "@/components/ui/button";
 
@@ -12,7 +11,6 @@ export function WalletBar() {
   const { address, isConnected } = useAccount();
   const { connect, connectors, isPending } = useConnect();
   const { disconnect } = useDisconnect();
-  const { network } = useNetwork();
 
   const { data: rawBalance } = useReadContract({
     address: PATHUSD_ADDRESS,
@@ -29,24 +27,25 @@ export function WalletBar() {
       rawBalance !== undefined ? formatUnits(rawBalance, 6) : null;
 
     return (
-      <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border bg-card">
-          <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-          <span className="text-xs font-mono">
-            {address.slice(0, 6)}…{address.slice(-4)}
-          </span>
-          {balance && (
-            <span className="text-xs text-text-dim">
-              {parseFloat(balance).toFixed(2)} pathUSD
+      <div className="space-y-2">
+        <div className="space-y-1.5 px-3 py-2.5 rounded-md border border-border bg-card">
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+            <span className="text-xs font-mono truncate">
+              {address.slice(0, 6)}…{address.slice(-4)}
             </span>
+          </div>
+          {balance && (
+            <div className="text-xs text-muted-foreground pl-3.5">
+              {parseFloat(balance).toFixed(2)} pathUSD
+            </div>
           )}
-          <span className="text-[10px] text-text-dim">{network}</span>
         </div>
         <Button
           variant="ghost"
           size="xs"
           onClick={() => disconnect()}
-          className="text-text-dim hover:text-destructive"
+          className="w-full justify-start text-text-dim hover:text-destructive"
         >
           disconnect
         </Button>
@@ -56,10 +55,9 @@ export function WalletBar() {
 
   return (
     <Button
-      variant="outline"
-      size="sm"
       onClick={() => tempoConnector && connect({ connector: tempoConnector })}
       disabled={isPending}
+      className="w-full h-10"
     >
       {isPending ? "connecting…" : "connect wallet"}
     </Button>

@@ -108,6 +108,12 @@
   --font-sans: var(--font-geist-sans);
 }
 
+html {
+  /* Reserve space for the scrollbar so page content doesn't shift
+     horizontally when scrollable content appears. */
+  scrollbar-gutter: stable;
+}
+
 body {
   background: var(--color-bg);
   color: var(--color-text);
