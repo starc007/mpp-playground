@@ -72,18 +72,20 @@ export function useScheduler() {
         token: currency as `0x${string}`,
       });
 
-      // Use a dedicated 2D nonce key so the scheduled tx doesn't share
-      // the protocol nonce sequence. Without this, the $0.10 MPP payment
-      // (which happens between signing and broadcast) increments the
-      // protocol nonce → "nonce too low" on broadcast.
-      //
-      // nonceKey=1n gives a separate nonce space (TIP-1009 2D nonces).
-      // Unlike expiring nonces (maxUint256), user nonce keys don't
-      // enforce a 30-second validBefore window.
+      // Use a RANDOM 2D nonce key per scheduled tx (TIP-1009).
+      // - Protocol nonce (key=0): consumed by the $0.10 MPP payment
+      //   between signing and broadcast → "nonce too low"
+      // - Fixed key (key=1): nonce 0 is consumed after first use,
+      //   subsequent txs fail
+      // - Random key: each tx gets its own nonce space with nonce=0,
+      //   so there are never collisions regardless of ordering
+      const randomNonceKey = BigInt(
+        "0x" + crypto.randomUUID().replace(/-/g, "").slice(0, 16),
+      );
       const prepared = await prepareTransactionRequest(walletClient, {
         account: walletClient.account,
         ...transferCall,
-        nonceKey: 1n,
+        nonceKey: randomNonceKey,
       } as never);
 
       // Override timestamps and gas after estimation.
