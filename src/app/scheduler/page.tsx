@@ -489,7 +489,11 @@ export default function SchedulerPage() {
                 </Button>
               </div>
               {statusResult && (
-                <TxStatusCard tx={statusResult} onCancel={handleCancel} onDelete={handleDelete} />
+                <TxStatusCard
+                  tx={statusResult}
+                  onCancel={handleCancel}
+                  onDelete={handleDelete}
+                />
               )}
             </CardContent>
           </Card>
@@ -578,34 +582,34 @@ function TxStatusCard({
           {tx.status}
         </Badge>
       </div>
-      {!compact && (
-        <>
+
+      <>
+        <div className="text-muted-foreground">
+          Broadcast after: {formatDate(tx.validAfter)}
+        </div>
+        {tx.validBefore && (
           <div className="text-muted-foreground">
-            Broadcast after: {formatDate(tx.validAfter)}
+            Expires: {formatDate(tx.validBefore)}
           </div>
-          {tx.validBefore && (
-            <div className="text-muted-foreground">
-              Expires: {formatDate(tx.validBefore)}
-            </div>
-          )}
-          {tx.txHash && (
-            <div>
-              <a
-                href={`https://explore.testnet.tempo.xyz/tx/${tx.txHash}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:underline font-mono"
-              >
-                {tx.txHash.slice(0, 10)}…{tx.txHash.slice(-8)}
-              </a>
-            </div>
-          )}
-          {tx.error && (
-            <div className="text-destructive break-all">{tx.error}</div>
-          )}
-          {tx.memo && <div className="text-muted-foreground">{tx.memo}</div>}
-        </>
-      )}
+        )}
+        {tx.txHash && (
+          <div>
+            <a
+              href={`https://explore.testnet.tempo.xyz/tx/${tx.txHash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline font-mono"
+            >
+              {tx.txHash.slice(0, 10)}…{tx.txHash.slice(-8)}
+            </a>
+          </div>
+        )}
+        {tx.error && (
+          <div className="text-destructive break-all">{tx.error}</div>
+        )}
+        {tx.memo && <div className="text-muted-foreground">{tx.memo}</div>}
+      </>
+
       <div className="flex items-center gap-2">
         {tx.status === "pending" && (
           <Button

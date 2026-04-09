@@ -8,8 +8,9 @@ export function createWagmiConfig(
   network: Network,
   options?: { disableFeePayer?: boolean },
 ) {
-  const feePayerUrl =
-    options?.disableFeePayer ? undefined : FEE_SPONSOR_URL[network];
+  const feePayerUrl = options?.disableFeePayer
+    ? undefined
+    : FEE_SPONSOR_URL[network];
 
   if (network === "testnet") {
     return createConfig({
