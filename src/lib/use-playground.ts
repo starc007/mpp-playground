@@ -12,6 +12,7 @@ import type {
   Network,
 } from "./types";
 import { networkForChainId } from "./chains";
+import { probeEndpoint, payEndpoint } from "./api";
 
 const INITIAL_STEPS: Step[] = [
   { id: "request", label: "Request", status: "idle" },
@@ -119,23 +120,7 @@ export function usePlayground() {
     });
 
     try {
-      const res = await fetch("/api/probe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          url,
-          method,
-          ...(reqBody && method !== "GET" && method !== "DELETE"
-            ? { body: reqBody }
-            : {}),
-        }),
-      });
-
-      const result = await res.json();
-
-      if (!res.ok) {
-        throw new Error(result.error || "Probe failed");
-      }
+      const result = await probeEndpoint({ url, method, body: reqBody });
 
       updateStep("request", {
         status: "complete",
@@ -240,20 +225,12 @@ export function usePlayground() {
 
       updateStep("retry", { status: "active" });
 
-      const payRes = await fetch("/api/pay", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          url,
-          credential,
-          method,
-          ...(reqBody && method !== "GET" && method !== "DELETE"
-            ? { body: reqBody }
-            : {}),
-        }),
+      const payResult = await payEndpoint({
+        url,
+        credential,
+        method,
+        body: reqBody,
       });
-
-      const payResult = await payRes.json();
 
       updateStep("retry", {
         status: "complete",
