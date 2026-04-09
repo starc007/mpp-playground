@@ -82,7 +82,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function SchedulerPage() {
   const { address, isConnected } = useAccount();
-  const { config, network } = useNetwork();
+  const { config } = useNetwork();
 
   // Transfer details
   const [recipient, setRecipient] = useState("");
@@ -124,16 +124,7 @@ export default function SchedulerPage() {
     setStep("signing");
 
     try {
-      // Create a config WITHOUT feePayerUrl lazily — so signTransaction
-      // produces a plain 0x76 sender-signed tx. We create it here (not
-      // at the provider level) to avoid a second tempoWallet connector
-      // instance which would create a duplicate iframe and break
-      // postMessage communication on production domains.
-      const { createWagmiConfig } = await import("@/lib/wagmi");
-      const rawConfig = createWagmiConfig(network, {
-        disableFeePayer: true,
-      });
-      const walletClient = await getConnectorClient(rawConfig);
+      const walletClient = await getConnectorClient(config);
 
       const validAfter = Math.floor(new Date(validAfterDate).getTime() / 1000);
       const validBefore = validBeforeDate
