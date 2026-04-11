@@ -79,7 +79,7 @@ export default function HtmlBuilderPage() {
       title="HTML Builder"
       description="Customize the mppx payment page visually. Pick colors, text, and layout — see changes live."
     >
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_1fr] gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_1fr] gap-6 items-start">
         {/* Left: Controls */}
         <div className="space-y-6">
           {/* Preset selector + reset */}
@@ -229,7 +229,7 @@ export default function HtmlBuilderPage() {
         </div>
 
         {/* Right: Preview + Config output */}
-        <div className="space-y-6">
+        <div className="space-y-6 xl:sticky xl:top-6">
           {/* Live preview */}
           <Card className="overflow-hidden p-0 gap-0">
             <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
