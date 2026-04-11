@@ -33,6 +33,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ColorPickerField } from "@/components/color-picker";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   type BuilderElement,
   type ElementType,
@@ -52,6 +54,17 @@ import {
   generateScript,
   TEMPLATES,
 } from "@/lib/custom-script-types";
+import {
+  DEFAULT_THEME,
+  DEFAULT_TEXT,
+  COLOR_TOKENS,
+  TEXT_FIELDS,
+  PRESETS,
+  FONT_FAMILIES,
+  type HtmlTheme,
+  type HtmlText,
+  type LightDark,
+} from "@/lib/html-builder-types";
 
 const ELEMENT_ICONS: Record<ElementType, React.ReactNode> = {
   button: <MousePointerClick className="size-3.5" />,
@@ -97,6 +110,8 @@ export default function CustomScriptPage() {
   const [copied, setCopied] = useState(false);
   const [previewKey, setPreviewKey] = useState(0);
   const [showScript, setShowScript] = useState(false);
+  const [theme, setTheme] = useState<HtmlTheme>({ ...DEFAULT_THEME });
+  const [text, setText] = useState<HtmlText>({ ...DEFAULT_TEXT });
 
   const script = useMemo(() => generateScript(elements), [elements]);
 
@@ -107,9 +122,20 @@ export default function CustomScriptPage() {
     const scriptB64 = btoa(unescape(encodeURIComponent(script)));
     const params = new URLSearchParams();
     params.set("script", scriptB64);
+    params.set("theme", JSON.stringify(theme));
+    params.set("text", JSON.stringify(text));
     return `/api/html-preview/custom?${params.toString()}`;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [script, previewKey]);
+  }, [script, theme, text, previewKey]);
+
+  function updateThemeColor(key: string, value: LightDark) {
+    setTheme((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function applyPreset(name: string) {
+    const preset = PRESETS.find((p) => p.name === name);
+    if (preset) setTheme({ ...preset.theme });
+  }
 
   function refreshPreview() {
     setPreviewKey((k) => k + 1);
@@ -353,6 +379,157 @@ export default function CustomScriptPage() {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Theme & Text controls */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm font-medium">
+                Page Theme
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Preset selector */}
+              <Field label="Preset">
+                <Select onValueChange={(v: string | null) => v && applyPreset(v)}>
+                  <SelectTrigger className="w-full text-xs">
+                    <SelectValue placeholder="Apply a preset…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PRESETS.map((p) => (
+                      <SelectItem key={p.name} value={p.name}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+
+              {/* Color scheme */}
+              <Field label="Color scheme">
+                <SelectField
+                  value={theme.colorScheme}
+                  onChange={(v) =>
+                    setTheme((prev) => ({
+                      ...prev,
+                      colorScheme: v as HtmlTheme["colorScheme"],
+                    }))
+                  }
+                  options={[
+                    { value: "light dark", label: "Auto" },
+                    { value: "light", label: "Light" },
+                    { value: "dark", label: "Dark" },
+                  ]}
+                />
+              </Field>
+
+              {/* Colors */}
+              {COLOR_TOKENS.map((token) => (
+                <ColorPickerField
+                  key={token.key}
+                  label={token.label}
+                  description={token.description}
+                  value={theme[token.key as keyof HtmlTheme] as LightDark}
+                  onChange={(v) => updateThemeColor(token.key, v)}
+                />
+              ))}
+
+              <div className="border-t border-border pt-4">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-3">
+                  Layout
+                </p>
+                <div className="space-y-3">
+                  <Field label="Font family">
+                    <Select
+                      value={theme.fontFamily}
+                      onValueChange={(v: string | null) => {
+                        if (!v) return;
+                        const font = FONT_FAMILIES.find((f) => f.value === v);
+                        setTheme((prev) => ({
+                          ...prev,
+                          fontFamily: v,
+                          fontUrl: font?.fontUrl ?? undefined,
+                        }));
+                      }}
+                    >
+                      <SelectTrigger className="w-full text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {FONT_FAMILIES.map((f) => (
+                          <SelectItem key={f.value} value={f.value}>
+                            {f.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <div className="grid grid-cols-3 gap-3">
+                    <Field label="Font size">
+                      <Input
+                        value={theme.fontSizeBase}
+                        onChange={(e) =>
+                          setTheme((prev) => ({
+                            ...prev,
+                            fontSizeBase: e.target.value,
+                          }))
+                        }
+                        placeholder="16px"
+                        className="text-xs"
+                      />
+                    </Field>
+                    <Field label="Radius">
+                      <Input
+                        value={theme.radius}
+                        onChange={(e) =>
+                          setTheme((prev) => ({
+                            ...prev,
+                            radius: e.target.value,
+                          }))
+                        }
+                        placeholder="6px"
+                        className="text-xs"
+                      />
+                    </Field>
+                    <Field label="Spacing">
+                      <Input
+                        value={theme.spacingUnit}
+                        onChange={(e) =>
+                          setTheme((prev) => ({
+                            ...prev,
+                            spacingUnit: e.target.value,
+                          }))
+                        }
+                        placeholder="2px"
+                        className="text-xs"
+                      />
+                    </Field>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t border-border pt-4">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-3">
+                  Text
+                </p>
+                <div className="space-y-3">
+                  {TEXT_FIELDS.map((field) => (
+                    <Field key={field.key} label={field.label}>
+                      <Input
+                        value={text[field.key as keyof HtmlText]}
+                        onChange={(e) =>
+                          setText((prev) => ({
+                            ...prev,
+                            [field.key]: e.target.value,
+                          }))
+                        }
+                        className="text-xs"
+                      />
+                    </Field>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* ─── Right: Preview + Script ─── */}

@@ -21,23 +21,128 @@ export async function GET(req: NextRequest) {
     return new NextResponse("invalid base64", { status: 400 });
   }
 
-  const html = buildPreviewPage(script);
+  // Parse optional theme/text overrides
+  let theme: Record<string, unknown> = {};
+  const themeParam = params.get("theme");
+  if (themeParam) {
+    try {
+      theme = JSON.parse(themeParam);
+    } catch {}
+  }
+
+  let text: Record<string, string> = {};
+  const textParam = params.get("text");
+  if (textParam) {
+    try {
+      text = JSON.parse(textParam);
+    } catch {}
+  }
+
+  const html = buildPreviewPage(script, theme, text);
   return new NextResponse(html, {
     headers: { "Content-Type": "text/html; charset=utf-8" },
   });
 }
 
-function buildPreviewPage(userScript: string): string {
-  // Escape </script> inside the user script to avoid breaking out
+// Default theme values
+const DEFAULTS = {
+  colorScheme: "light dark",
+  fontFamily: "system-ui, -apple-system, sans-serif",
+  fontSizeBase: "16px",
+  radius: "6px",
+  spacingUnit: "2px",
+  accent: ["#171717", "#ededed"],
+  background: ["#ffffff", "#0a0a0a"],
+  border: ["#e5e5e5", "#2e2e2e"],
+  foreground: ["#0a0a0a", "#ededed"],
+  muted: ["#666666", "#a1a1a1"],
+  negative: ["#e5484d", "#e5484d"],
+  positive: ["#30a46c", "#30a46c"],
+  surface: ["#f5f5f5", "#1a1a1a"],
+};
+
+const COLOR_TOKENS = [
+  "accent",
+  "background",
+  "border",
+  "foreground",
+  "muted",
+  "negative",
+  "positive",
+  "surface",
+] as const;
+
+function resolveColor(
+  value: unknown,
+  fallback: string[],
+): [string, string] {
+  if (Array.isArray(value) && value.length >= 2)
+    return [value[0], value[1]];
+  if (typeof value === "string") return [value, value];
+  return [fallback[0]!, fallback[1]!];
+}
+
+function buildPreviewPage(
+  userScript: string,
+  theme: Record<string, unknown>,
+  text: Record<string, string>,
+): string {
   const safeScript = userScript.replace(/<\/script/gi, "<\\/script");
+
+  // Resolve theme
+  const colorScheme =
+    (theme.colorScheme as string) ?? DEFAULTS.colorScheme;
+  const fontFamily =
+    (theme.fontFamily as string) ?? DEFAULTS.fontFamily;
+  const fontSizeBase =
+    (theme.fontSizeBase as string) ?? DEFAULTS.fontSizeBase;
+  const radius = (theme.radius as string) ?? DEFAULTS.radius;
+  const spacingUnit =
+    (theme.spacingUnit as string) ?? DEFAULTS.spacingUnit;
+  const fontUrl = theme.fontUrl as string | undefined;
+
+  // Resolve colors
+  const colors: Record<string, [string, string]> = {};
+  for (const token of COLOR_TOKENS) {
+    colors[token] = resolveColor(
+      theme[token],
+      DEFAULTS[token],
+    );
+  }
+
+  const isLightOnly = colorScheme === "light";
+  const isDarkOnly = colorScheme === "dark";
+
+  const lightVars = COLOR_TOKENS.map(
+    (t) => `--mppx-${t}: ${colors[t]![0]};`,
+  ).join("\n        ");
+  const darkVars = COLOR_TOKENS.map(
+    (t) => `--mppx-${t}: ${colors[t]![1]};`,
+  ).join("\n          ");
+
+  const rootVars = isDarkOnly ? darkVars : lightVars;
+  const darkMedia =
+    !isLightOnly && !isDarkOnly
+      ? `\n      @media (prefers-color-scheme: dark) {\n        :root {\n          ${darkVars}\n        }\n      }`
+      : "";
+
+  const fontLink = fontUrl
+    ? `<link rel="preconnect" href="${new URL(fontUrl).origin}" crossorigin />\n  <link rel="stylesheet" href="${fontUrl}" />`
+    : "";
+
+  // Resolve text
+  const title = text.title ?? "Payment Required";
+  const paymentRequired = text.paymentRequired ?? "Payment Required";
+  const expiresLabel = text.expires ?? "Expires at";
 
   return `<!doctype html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="color-scheme" content="light dark" />
-  <title>Payment Required</title>
+  <meta name="color-scheme" content="${colorScheme}" />
+  <title>${esc(title)}</title>
+  ${fontLink}
   <style>
     *, ::after, ::before { box-sizing: border-box; margin: 0; padding: 0; border: 0 solid; }
     html { line-height: 1.5; -webkit-text-size-adjust: 100%; }
@@ -48,32 +153,13 @@ function buildPreviewPage(userScript: string): string {
     ol, ul { list-style: none; }
 
     :root {
-      color-scheme: light dark;
-      --mppx-font-family: system-ui, -apple-system, sans-serif;
-      --mppx-font-size-base: 16px;
-      --mppx-radius: 6px;
-      --mppx-spacing-unit: 2px;
-      --mppx-accent: #171717;
-      --mppx-background: #ffffff;
-      --mppx-border: #e5e5e5;
-      --mppx-foreground: #0a0a0a;
-      --mppx-muted: #666666;
-      --mppx-negative: #e5484d;
-      --mppx-positive: #30a46c;
-      --mppx-surface: #f5f5f5;
-    }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --mppx-accent: #ededed;
-        --mppx-background: #0a0a0a;
-        --mppx-border: #2e2e2e;
-        --mppx-foreground: #ededed;
-        --mppx-muted: #a1a1a1;
-        --mppx-negative: #e5484d;
-        --mppx-positive: #30a46c;
-        --mppx-surface: #1a1a1a;
-      }
-    }
+      color-scheme: ${colorScheme};
+      --mppx-font-family: ${fontFamily};
+      --mppx-font-size-base: ${fontSizeBase};
+      --mppx-radius: ${radius};
+      --mppx-spacing-unit: ${spacingUnit};
+      ${rootVars}
+    }${darkMedia}
     *:focus-visible { outline: 2px solid var(--mppx-accent); outline-offset: 0.15rem; }
     body {
       -webkit-font-smoothing: antialiased;
@@ -134,7 +220,7 @@ function buildPreviewPage(userScript: string): string {
 <body>
   <main>
     <header class="mppx-header">
-      <span>Payment Required</span>
+      <span>${esc(paymentRequired)}</span>
     </header>
     <section class="mppx-summary" aria-label="Payment summary">
       <h1 class="mppx-summary-amount">$1.00</h1>
@@ -163,17 +249,16 @@ function buildPreviewPage(userScript: string): string {
           "description": "Premium API access"
         },
         "text": {
-          "title": "Payment Required",
-          "pay": "Pay",
-          "paymentRequired": "Payment Required",
-          "expires": "Expires at"
+          "title": ${JSON.stringify(title)},
+          "pay": ${JSON.stringify(text.pay ?? "Pay")},
+          "paymentRequired": ${JSON.stringify(paymentRequired)},
+          "expires": ${JSON.stringify(expiresLabel)}
         },
         "theme": {}
       }
     }
     </script>
     <script>
-    // Mock the Html module so user scripts calling Html.init() work
     var Html = {
       init: function(methodName) {
         var dataEl = document.getElementById('__MPPX_DATA__');
@@ -226,4 +311,12 @@ function buildPreviewPage(userScript: string): string {
   </main>
 </body>
 </html>`;
+}
+
+function esc(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
