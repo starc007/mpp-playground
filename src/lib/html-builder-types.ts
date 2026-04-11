@@ -114,6 +114,7 @@ export const PRESETS: Preset[] = [
       muted: ["#8b9e8b", "#8b9e8b"],
       surface: ["#111a15", "#111a15"],
       positive: ["#4ade80", "#4ade80"],
+      radius: "14px",
     },
   },
   {
@@ -127,7 +128,7 @@ export const PRESETS: Preset[] = [
       foreground: ["#000000", "#000000"],
       muted: ["#888888", "#888888"],
       surface: ["#fafafa", "#fafafa"],
-      radius: "4px",
+      radius: "14px",
     },
   },
   {
@@ -158,8 +159,7 @@ export function buildServerConfig(
 
   const themeDiff: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(theme)) {
-    const defaultVal =
-      DEFAULT_THEME[key as keyof HtmlTheme];
+    const defaultVal = DEFAULT_THEME[key as keyof HtmlTheme];
     if (JSON.stringify(value) !== JSON.stringify(defaultVal)) {
       themeDiff[key] = value;
     }

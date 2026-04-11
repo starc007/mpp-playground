@@ -27,6 +27,25 @@ import {
   type LightDark,
 } from "@/lib/html-builder-types";
 
+const FONT_FAMILIES = [
+  { label: "System Default", value: "system-ui, -apple-system, sans-serif" },
+  { label: "Inter", value: "Inter, sans-serif" },
+  { label: "IBM Plex Sans", value: "IBM Plex Sans, sans-serif" },
+  { label: "IBM Plex Mono", value: "IBM Plex Mono, monospace" },
+  { label: "Geist", value: "Geist, sans-serif" },
+  { label: "Geist Mono", value: "Geist Mono, monospace" },
+  { label: "Roboto", value: "Roboto, sans-serif" },
+  { label: "Open Sans", value: "Open Sans, sans-serif" },
+  { label: "Lato", value: "Lato, sans-serif" },
+  { label: "Poppins", value: "Poppins, sans-serif" },
+  { label: "DM Sans", value: "DM Sans, sans-serif" },
+  { label: "DM Mono", value: "DM Mono, monospace" },
+  { label: "Space Grotesk", value: "Space Grotesk, sans-serif" },
+  { label: "JetBrains Mono", value: "JetBrains Mono, monospace" },
+  { label: "Fira Code", value: "Fira Code, monospace" },
+  { label: "Source Code Pro", value: "Source Code Pro, monospace" },
+] as const;
+
 export default function HtmlBuilderPage() {
   const [theme, setTheme] = useState<HtmlTheme>({ ...DEFAULT_THEME });
   const [text, setText] = useState<HtmlText>({ ...DEFAULT_TEXT });
@@ -151,16 +170,27 @@ export default function HtmlBuilderPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <Field label="Font family">
-                <Input
+                <Select
                   value={theme.fontFamily}
-                  onChange={(e) =>
+                  onValueChange={(v: string | null) =>
+                    v &&
                     setTheme((prev) => ({
                       ...prev,
-                      fontFamily: e.target.value,
+                      fontFamily: v,
                     }))
                   }
-                  className="text-xs font-mono"
-                />
+                >
+                  <SelectTrigger className="w-full text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FONT_FAMILIES.map((f) => (
+                      <SelectItem key={f.value} value={f.value}>
+                        {f.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </Field>
               <Field label="Font size">
                 <Input
