@@ -25,24 +25,8 @@ import {
   type HtmlTheme,
   type HtmlText,
   type LightDark,
+  FONT_FAMILIES,
 } from "@/lib/html-builder-types";
-
-const FONT_FAMILIES = [
-  { label: "System Default", value: "system-ui, -apple-system, sans-serif", fontUrl: undefined },
-  { label: "Inter", value: "Inter, sans-serif", fontUrl: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" },
-  { label: "IBM Plex Sans", value: "IBM Plex Sans, sans-serif", fontUrl: "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" },
-  { label: "IBM Plex Mono", value: "IBM Plex Mono, monospace", fontUrl: "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" },
-  { label: "Roboto", value: "Roboto, sans-serif", fontUrl: "https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" },
-  { label: "Open Sans", value: "Open Sans, sans-serif", fontUrl: "https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap" },
-  { label: "Lato", value: "Lato, sans-serif", fontUrl: "https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap" },
-  { label: "Poppins", value: "Poppins, sans-serif", fontUrl: "https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" },
-  { label: "DM Sans", value: "DM Sans, sans-serif", fontUrl: "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" },
-  { label: "DM Mono", value: "DM Mono, monospace", fontUrl: "https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap" },
-  { label: "Space Grotesk", value: "Space Grotesk, sans-serif", fontUrl: "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" },
-  { label: "JetBrains Mono", value: "JetBrains Mono, monospace", fontUrl: "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" },
-  { label: "Fira Code", value: "Fira Code, monospace", fontUrl: "https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&display=swap" },
-  { label: "Source Code Pro", value: "Source Code Pro, monospace", fontUrl: "https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;500;600;700&display=swap" },
-] as const;
 
 export default function HtmlBuilderPage() {
   const [theme, setTheme] = useState<HtmlTheme>({ ...DEFAULT_THEME });
