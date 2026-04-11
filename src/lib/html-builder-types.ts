@@ -18,6 +18,8 @@ export interface HtmlTheme {
   positive: LightDark;
   surface: LightDark;
   fontFamily: string;
+  /** Google Fonts URL injected as a <link> in the payment page. */
+  fontUrl?: string;
   fontSizeBase: string;
   radius: string;
   spacingUnit: string;

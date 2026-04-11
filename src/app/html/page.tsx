@@ -28,22 +28,20 @@ import {
 } from "@/lib/html-builder-types";
 
 const FONT_FAMILIES = [
-  { label: "System Default", value: "system-ui, -apple-system, sans-serif" },
-  { label: "Inter", value: "Inter, sans-serif" },
-  { label: "IBM Plex Sans", value: "IBM Plex Sans, sans-serif" },
-  { label: "IBM Plex Mono", value: "IBM Plex Mono, monospace" },
-  { label: "Geist", value: "Geist, sans-serif" },
-  { label: "Geist Mono", value: "Geist Mono, monospace" },
-  { label: "Roboto", value: "Roboto, sans-serif" },
-  { label: "Open Sans", value: "Open Sans, sans-serif" },
-  { label: "Lato", value: "Lato, sans-serif" },
-  { label: "Poppins", value: "Poppins, sans-serif" },
-  { label: "DM Sans", value: "DM Sans, sans-serif" },
-  { label: "DM Mono", value: "DM Mono, monospace" },
-  { label: "Space Grotesk", value: "Space Grotesk, sans-serif" },
-  { label: "JetBrains Mono", value: "JetBrains Mono, monospace" },
-  { label: "Fira Code", value: "Fira Code, monospace" },
-  { label: "Source Code Pro", value: "Source Code Pro, monospace" },
+  { label: "System Default", value: "system-ui, -apple-system, sans-serif", fontUrl: undefined },
+  { label: "Inter", value: "Inter, sans-serif", fontUrl: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" },
+  { label: "IBM Plex Sans", value: "IBM Plex Sans, sans-serif", fontUrl: "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" },
+  { label: "IBM Plex Mono", value: "IBM Plex Mono, monospace", fontUrl: "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" },
+  { label: "Roboto", value: "Roboto, sans-serif", fontUrl: "https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" },
+  { label: "Open Sans", value: "Open Sans, sans-serif", fontUrl: "https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap" },
+  { label: "Lato", value: "Lato, sans-serif", fontUrl: "https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap" },
+  { label: "Poppins", value: "Poppins, sans-serif", fontUrl: "https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" },
+  { label: "DM Sans", value: "DM Sans, sans-serif", fontUrl: "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" },
+  { label: "DM Mono", value: "DM Mono, monospace", fontUrl: "https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap" },
+  { label: "Space Grotesk", value: "Space Grotesk, sans-serif", fontUrl: "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" },
+  { label: "JetBrains Mono", value: "JetBrains Mono, monospace", fontUrl: "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" },
+  { label: "Fira Code", value: "Fira Code, monospace", fontUrl: "https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&display=swap" },
+  { label: "Source Code Pro", value: "Source Code Pro, monospace", fontUrl: "https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;500;600;700&display=swap" },
 ] as const;
 
 export default function HtmlBuilderPage() {
@@ -66,8 +64,7 @@ export default function HtmlBuilderPage() {
     [theme, text],
   );
 
-  const hasChanges =
-    JSON.stringify(serverConfig) !== JSON.stringify({});
+  const hasChanges = JSON.stringify(serverConfig) !== JSON.stringify({});
 
   const configCode = `tempo.charge({
   html: ${JSON.stringify(serverConfig, null, 4).replace(/"([^"]+)":/g, "$1:")},
@@ -154,9 +151,7 @@ export default function HtmlBuilderPage() {
                   key={token.key}
                   label={token.label}
                   description={token.description}
-                  value={
-                    theme[token.key as keyof HtmlTheme] as LightDark
-                  }
+                  value={theme[token.key as keyof HtmlTheme] as LightDark}
                   onChange={(v) => updateThemeColor(token.key, v)}
                 />
               ))}
@@ -172,13 +167,15 @@ export default function HtmlBuilderPage() {
               <Field label="Font family">
                 <Select
                   value={theme.fontFamily}
-                  onValueChange={(v: string | null) =>
-                    v &&
+                  onValueChange={(v: string | null) => {
+                    if (!v) return;
+                    const font = FONT_FAMILIES.find((f) => f.value === v);
                     setTheme((prev) => ({
                       ...prev,
                       fontFamily: v,
-                    }))
-                  }
+                      fontUrl: font?.fontUrl ?? undefined,
+                    }));
+                  }}
                 >
                   <SelectTrigger className="w-full text-xs">
                     <SelectValue />
@@ -290,7 +287,7 @@ export default function HtmlBuilderPage() {
           {/* Config output */}
           {hasChanges && (
             <Card>
-              <CardHeader className="flex-row items-center justify-between">
+              <CardHeader className="flex items-center justify-between">
                 <CardTitle className="text-sm">Server Config</CardTitle>
                 <Button variant="outline" size="xs" onClick={handleCopy}>
                   {copied ? (
