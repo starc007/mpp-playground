@@ -207,7 +207,7 @@ export default function CustomScriptPage() {
           </div>
 
           {/* Element list */}
-          <Card>
+          <Card className="overflow-visible">
             <CardHeader className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium">Elements</CardTitle>
               <AddElementMenu onAdd={addElement} />
