@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
   const description = params.get("description") ?? "Preview payment";
   const recipient =
     (params.get("recipient") as `0x${string}`) ??
-    "0x0000000000000000000000000000000000000000";
+    "0xAf1A2E215FdB629d277a6442100092eF1e38436b";
   const currency =
     (params.get("currency") as `0x${string}`) ??
     "0x20c0000000000000000000000000000000000000";
@@ -40,8 +40,7 @@ export async function GET(req: NextRequest) {
 
   const mppx = Mppx.create({
     secretKey:
-      process.env.MPP_SECRET_KEY ??
-      "mpp-playground-html-preview-dev-key",
+      process.env.MPP_SECRET_KEY ?? "mpp-playground-html-preview-dev-key",
     methods: [
       tempo.charge({
         currency,
