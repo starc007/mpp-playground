@@ -347,7 +347,7 @@ function CreateKeyDrawer({
         limits: validLimits,
         ...(mode === "external" && externalAddress
           ? {
-              publicKey: externalAddress as `0x${string}`,
+              externalAddress: externalAddress as `0x${string}`,
               keyType: "secp256k1" as const,
             }
           : {}),
