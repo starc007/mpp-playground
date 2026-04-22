@@ -18,6 +18,11 @@ interface StoredAccessKey {
 
 interface ProviderStore {
   getState: () => { accessKeys: readonly StoredAccessKey[] };
+  setState: (
+    updater: (state: { accessKeys: readonly StoredAccessKey[] }) => Partial<{
+      accessKeys: readonly StoredAccessKey[];
+    }>,
+  ) => void;
   subscribe: (
     selector: (state: { accessKeys: readonly StoredAccessKey[] }) => unknown,
     listener: () => void,
@@ -150,6 +155,16 @@ export function useRevokeAccessKey() {
           method: "wallet_revokeAccessKey",
           params: [{ address, accessKeyAddress }],
         });
+
+        // The SDK's dialog adapter doesn't prune the revoked key from its
+        // local store after the on-chain revocation succeeds, so the UI would
+        // keep showing it. Remove it manually so the subscribed list updates.
+        provider.store.setState((state) => ({
+          accessKeys: state.accessKeys.filter(
+            (k) =>
+              k.address.toLowerCase() !== accessKeyAddress.toLowerCase(),
+          ),
+        }));
       } catch (e) {
         const message =
           e instanceof Error ? e.message : "failed to revoke access key";
