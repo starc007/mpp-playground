@@ -42,6 +42,7 @@ import {
   useAccessKeys,
   useCreateAccessKey,
   useRevokeAccessKey,
+  useRemainingLimit,
 } from "@/hooks/use-access-keys";
 
 interface LimitDraft {
@@ -221,14 +222,14 @@ function KeyCard({
         </div>
 
         {entry.limits && entry.limits.length > 0 && (
-          <div className="flex items-center gap-1.5 flex-wrap pt-1">
+          <div className="flex flex-col gap-1.5 pt-1">
             {entry.limits.map((limit, i) => (
-              <span
+              <LimitUsage
                 key={i}
-                className="text-[11px] px-2 py-0.5 rounded-md bg-primary/8 text-primary font-medium"
-              >
-                {formatLimitAmount(limit.limit)} {getTokenLabel(limit.token)}
-              </span>
+                accessKey={entry.address}
+                token={limit.token}
+                total={limit.limit}
+              />
             ))}
           </div>
         )}
@@ -264,6 +265,79 @@ function KeyCard({
         )}
       </div>
     </motion.div>
+  );
+}
+
+// ── Limit Usage bar ──
+
+function LimitUsage({
+  accessKey,
+  token,
+  total,
+}: {
+  accessKey: `0x${string}`;
+  token: `0x${string}`;
+  total: bigint;
+}) {
+  const remaining = useRemainingLimit(accessKey, token);
+
+  const label = getTokenLabel(token);
+  const totalStr = formatLimitAmount(total);
+
+  // remaining === undefined → loading
+  // remaining === null → read failed (e.g. contract doesn't know this key yet)
+  // remaining === bigint → we have data
+  const loading = remaining === undefined;
+  const failed = remaining === null;
+
+  const used =
+    typeof remaining === "bigint"
+      ? remaining > total
+        ? 0n
+        : total - remaining
+      : 0n;
+
+  const usedStr = formatLimitAmount(used);
+  const pct =
+    total > 0n && typeof remaining === "bigint"
+      ? Number((used * 10000n) / total) / 100
+      : 0;
+
+  const barColor =
+    pct >= 90
+      ? "bg-red-500"
+      : pct >= 70
+        ? "bg-yellow-500"
+        : "bg-primary";
+
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between text-[11px]">
+        <span className="font-medium text-foreground">{label}</span>
+        <span className="text-muted-foreground tabular-nums">
+          {loading ? (
+            <span className="text-muted-foreground/60">loading…</span>
+          ) : failed ? (
+            <span className="text-muted-foreground/60">
+              {totalStr} (usage unavailable)
+            </span>
+          ) : (
+            <>
+              <span className="text-foreground">{usedStr}</span>
+              <span className="text-muted-foreground/60"> / {totalStr}</span>
+            </>
+          )}
+        </span>
+      </div>
+      {!loading && !failed && (
+        <div className="h-1 rounded-full bg-muted/50 overflow-hidden">
+          <div
+            className={`h-full ${barColor} transition-all duration-300`}
+            style={{ width: `${Math.min(pct, 100)}%` }}
+          />
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -405,8 +479,7 @@ function CreateKeyDrawer({
                   <Select
                     value={limit.token}
                     onValueChange={(v: string | null) =>
-                      v &&
-                      updateLimit(limit.id, { token: v as `0x${string}` })
+                      v && updateLimit(limit.id, { token: v as `0x${string}` })
                     }
                   >
                     <SelectTrigger className="w-32 text-xs">
@@ -445,7 +518,12 @@ function CreateKeyDrawer({
         </div>
 
         <div className="p-4 border-t border-border flex items-center justify-end gap-2">
-          <Button variant="ghost" size="sm" onClick={onClose} disabled={isPending}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            disabled={isPending}
+          >
             cancel
           </Button>
           <Button size="sm" onClick={handleCreate} disabled={isPending}>
@@ -457,7 +535,6 @@ function CreateKeyDrawer({
   );
 }
 
-
 // ── Explainer Panel ──
 
 function ExplainerPanel() {
@@ -467,13 +544,11 @@ function ExplainerPanel() {
         <Info className="size-4" />
       </div>
       <div className="space-y-1.5 text-xs">
-        <p className="font-medium text-foreground">
-          What are access keys?
-        </p>
+        <p className="font-medium text-foreground">What are access keys?</p>
         <p className="text-muted-foreground leading-relaxed">
-          Access keys let you authorize an AI agent with a separate keypair
-          and strict spending limits. Enforced at the chain level via TIP-1011
-          — even a compromised agent can&apos;t exceed its limits.
+          Access keys let you authorize an AI agent with a separate keypair and
+          strict spending limits. Enforced at the chain level via TIP-1011 —
+          even a compromised agent can&apos;t exceed its limits.
         </p>
       </div>
     </div>

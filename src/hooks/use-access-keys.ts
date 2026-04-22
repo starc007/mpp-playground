@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useAccount } from "wagmi";
+import { useAccount, usePublicClient } from "wagmi";
+import { Actions } from "viem/tempo";
 import type { AccessKeyEntry } from "@/lib/access-keys";
 
 /**
@@ -178,6 +179,56 @@ export function useRevokeAccessKey() {
   );
 
   return { revokeKey, isPending, error };
+}
+
+/**
+ * Reads the remaining spending limit for a (key, token) pair from the chain.
+ * Returns undefined while loading, null if the read fails.
+ */
+export function useRemainingLimit(
+  accessKey: `0x${string}` | undefined,
+  token: `0x${string}` | undefined,
+) {
+  const { address } = useAccount();
+  const publicClient = usePublicClient();
+  const [fetched, setFetched] = useState<bigint | null | undefined>(undefined);
+
+  const enabled = Boolean(address && accessKey && token && publicClient);
+
+  useEffect(() => {
+    if (!enabled || !address || !accessKey || !token || !publicClient) return;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        // `usePublicClient()` returns a Client typed to whichever chain
+        // variant wagmi was configured with; the viem tempo action expects
+        // a narrower Tempo client. The runtime works across both variants,
+        // so narrow the type locally.
+        const result = await Actions.accessKey.getRemainingLimit(
+          publicClient as Parameters<
+            typeof Actions.accessKey.getRemainingLimit
+          >[0],
+          {
+            account: address,
+            accessKey,
+            token,
+          },
+        );
+        if (!cancelled) setFetched(result.remaining);
+      } catch {
+        if (!cancelled) setFetched(null);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      setFetched(undefined);
+    };
+  }, [enabled, address, accessKey, token, publicClient]);
+
+  return enabled ? fetched : undefined;
 }
 
 export type { AccountsProvider };
