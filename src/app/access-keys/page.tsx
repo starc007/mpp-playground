@@ -13,7 +13,11 @@ import {
   Check,
   Info,
   AlertTriangle,
+  Wand2,
+  Eye,
+  EyeOff,
 } from "lucide-react";
+import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -269,6 +273,8 @@ function KeyCard({
 
 // ── Create Drawer ──
 
+type KeyMode = "browser" | "external";
+
 function CreateKeyDrawer({
   onClose,
   onCreated,
@@ -276,10 +282,18 @@ function CreateKeyDrawer({
   onClose: () => void;
   onCreated: () => void;
 }) {
+  const [mode, setMode] = useState<KeyMode>("browser");
   const [expiryDays, setExpiryDays] = useState(7);
   const [limits, setLimits] = useState<LimitDraft[]>([
     { id: "l1", token: TEMPO_CURRENCIES[0].address, amount: "10" },
   ]);
+  const [externalAddress, setExternalAddress] = useState("");
+  const [generatedPrivateKey, setGeneratedPrivateKey] = useState<string | null>(
+    null,
+  );
+  const [revealPrivateKey, setRevealPrivateKey] = useState(false);
+  const [pkCopied, setPkCopied] = useState(false);
+  const [success, setSuccess] = useState(false);
   const { createKey, isPending, error } = useCreateAccessKey();
 
   function updateLimit(id: string, patch: Partial<LimitDraft>) {
@@ -303,6 +317,21 @@ function CreateKeyDrawer({
     setLimits((prev) => prev.filter((l) => l.id !== id));
   }
 
+  function generateKeypair() {
+    const privateKey = generatePrivateKey();
+    const account = privateKeyToAccount(privateKey);
+    setGeneratedPrivateKey(privateKey);
+    setExternalAddress(account.address);
+    setRevealPrivateKey(true);
+  }
+
+  async function copyPrivateKey() {
+    if (!generatedPrivateKey) return;
+    await navigator.clipboard.writeText(generatedPrivateKey);
+    setPkCopied(true);
+    setTimeout(() => setPkCopied(false), 1500);
+  }
+
   async function handleCreate() {
     const expiry = expiryFromDays(expiryDays);
     const validLimits = limits
@@ -313,8 +342,22 @@ function CreateKeyDrawer({
       }));
 
     try {
-      await createKey({ expiry, limits: validLimits });
-      onCreated();
+      await createKey({
+        expiry,
+        limits: validLimits,
+        ...(mode === "external" && externalAddress
+          ? {
+              publicKey: externalAddress as `0x${string}`,
+              keyType: "secp256k1" as const,
+            }
+          : {}),
+      });
+      if (mode === "external" && generatedPrivateKey) {
+        // Keep drawer open to show private key warning; user closes manually
+        setSuccess(true);
+      } else {
+        onCreated();
+      }
     } catch {
       // error displayed inline below
     }
@@ -344,11 +387,98 @@ function CreateKeyDrawer({
             <h2 className="text-sm font-semibold">Create Access Key</h2>
           </div>
           <p className="text-[11px] text-muted-foreground">
-            A new keypair will be generated and authorized on-chain.
+            {mode === "browser"
+              ? "Keypair generated and stored in this browser's wallet."
+              : "Authorize a key whose private half lives outside this browser."}
           </p>
         </div>
 
+        {success && mode === "external" && generatedPrivateKey ? (
+          <SuccessPrivateKey
+            privateKey={generatedPrivateKey}
+            address={externalAddress}
+            onDone={() => {
+              setGeneratedPrivateKey(null);
+              setSuccess(false);
+              onCreated();
+            }}
+            onCopy={copyPrivateKey}
+            copied={pkCopied}
+            reveal={revealPrivateKey}
+            onToggleReveal={() => setRevealPrivateKey((r) => !r)}
+          />
+        ) : (
+        <>
         <div className="p-5 space-y-5 max-h-[60vh] overflow-y-auto">
+          {/* Mode tabs */}
+          <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-muted/50">
+            <button
+              onClick={() => setMode("browser")}
+              className={`text-xs py-1.5 rounded-lg transition-colors ${
+                mode === "browser"
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              In browser
+            </button>
+            <button
+              onClick={() => setMode("external")}
+              className={`text-xs py-1.5 rounded-lg transition-colors ${
+                mode === "external"
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              External agent
+            </button>
+          </div>
+
+          {/* External key input */}
+          {mode === "external" && (
+            <div className="space-y-2">
+              <Label className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">
+                Agent address (secp256k1)
+              </Label>
+              <div className="flex items-center gap-1.5">
+                <Input
+                  value={externalAddress}
+                  onChange={(e) => {
+                    setExternalAddress(e.target.value);
+                    if (generatedPrivateKey) {
+                      setGeneratedPrivateKey(null);
+                      setRevealPrivateKey(false);
+                    }
+                  }}
+                  placeholder="0x…"
+                  className="flex-1 text-xs font-mono"
+                />
+                <Button
+                  variant="outline"
+                  size="xs"
+                  onClick={generateKeypair}
+                  type="button"
+                >
+                  <Wand2 className="size-3" />
+                  Generate
+                </Button>
+              </div>
+              {generatedPrivateKey && (
+                <div className="flex items-start gap-2 p-2.5 rounded-lg bg-yellow-500/5 border border-yellow-500/20">
+                  <AlertTriangle className="size-3 text-yellow-600 shrink-0 mt-0.5" />
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    A keypair was generated. After authorizing, you&apos;ll see the
+                    private key once — copy it before closing.
+                  </p>
+                </div>
+              )}
+              <p className="text-[11px] text-muted-foreground">
+                Paste an address you already control, or generate one here for
+                the agent.
+              </p>
+            </div>
+          )}
+
           {/* Expiry */}
           <div className="space-y-2">
             <Label className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">
@@ -452,8 +582,95 @@ function CreateKeyDrawer({
             {isPending ? "signing…" : "authorize key"}
           </Button>
         </div>
+        </>
+        )}
       </motion.div>
     </motion.div>
+  );
+}
+
+// ── Success / Private Key reveal ──
+
+function SuccessPrivateKey({
+  privateKey,
+  address,
+  onDone,
+  onCopy,
+  copied,
+  reveal,
+  onToggleReveal,
+}: {
+  privateKey: string;
+  address: string;
+  onDone: () => void;
+  onCopy: () => void;
+  copied: boolean;
+  reveal: boolean;
+  onToggleReveal: () => void;
+}) {
+  return (
+    <div className="p-5 space-y-4">
+      <div className="flex items-start gap-3 p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/30">
+        <AlertTriangle className="size-4 text-yellow-600 shrink-0 mt-0.5" />
+        <div className="text-xs space-y-1">
+          <p className="font-medium text-foreground">
+            Copy the private key now
+          </p>
+          <p className="text-muted-foreground leading-relaxed">
+            This is the only time you&apos;ll see it. The agent needs this to
+            sign transactions. It will not be stored in this browser.
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">
+          Address
+        </Label>
+        <div className="text-xs font-mono px-3 py-2 rounded-lg border border-border bg-muted/30">
+          {address}
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <Label className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">
+            Private key
+          </Label>
+          <button
+            onClick={onToggleReveal}
+            className="text-[11px] text-muted-foreground hover:text-foreground flex items-center gap-1"
+          >
+            {reveal ? (
+              <>
+                <EyeOff className="size-3" />
+                hide
+              </>
+            ) : (
+              <>
+                <Eye className="size-3" />
+                reveal
+              </>
+            )}
+          </button>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="flex-1 text-xs font-mono px-3 py-2 rounded-lg border border-border bg-muted/30 truncate">
+            {reveal ? privateKey : "•".repeat(64)}
+          </div>
+          <Button variant="outline" size="xs" onClick={onCopy}>
+            {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+            {copied ? "copied" : "copy"}
+          </Button>
+        </div>
+      </div>
+
+      <div className="pt-2 border-t border-border">
+        <Button size="sm" onClick={onDone} className="w-full">
+          I&apos;ve saved it — close
+        </Button>
+      </div>
+    </div>
   );
 }
 

@@ -98,6 +98,9 @@ export function useCreateAccessKey() {
     async (params: {
       expiry: number;
       limits?: Array<{ token: `0x${string}`; limit: bigint }>;
+      /** Optional external public key. When set, the SDK skips keygen and authorizes this key. */
+      publicKey?: `0x${string}`;
+      keyType?: "secp256k1" | "p256" | "webAuthn";
     }) => {
       setIsPending(true);
       setError(null);
@@ -112,6 +115,9 @@ export function useCreateAccessKey() {
               expiry: params.expiry,
               ...(params.limits && params.limits.length > 0
                 ? { limits: params.limits }
+                : {}),
+              ...(params.publicKey
+                ? { publicKey: params.publicKey, keyType: params.keyType ?? "secp256k1" }
                 : {}),
             },
           ],
