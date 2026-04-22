@@ -98,9 +98,6 @@ export function useCreateAccessKey() {
     async (params: {
       expiry: number;
       limits?: Array<{ token: `0x${string}`; limit: bigint }>;
-      /** External access key address (derived from a keypair the agent holds). When set, the SDK skips keygen. */
-      externalAddress?: `0x${string}`;
-      keyType?: "secp256k1" | "p256" | "webAuthn";
     }) => {
       setIsPending(true);
       setError(null);
@@ -115,12 +112,6 @@ export function useCreateAccessKey() {
               expiry: params.expiry,
               ...(params.limits && params.limits.length > 0
                 ? { limits: params.limits }
-                : {}),
-              ...(params.externalAddress
-                ? {
-                    address: params.externalAddress,
-                    keyType: params.keyType ?? "secp256k1",
-                  }
                 : {}),
             },
           ],
