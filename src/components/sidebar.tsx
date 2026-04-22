@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "motion/react";
-import { Search, Link2, Code2, Clock, Blocks } from "lucide-react";
+import { Search, Link2, Code2, Clock, Blocks, KeyRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNetwork } from "./providers";
 import { NetworkSelector } from "./network-selector";
@@ -34,6 +34,11 @@ const NAV_ITEMS = [
     href: "/scheduler",
     label: "TX Scheduler",
     icon: Clock,
+  },
+  {
+    href: "/access-keys",
+    label: "Access Keys",
+    icon: KeyRound,
   },
 ] as const;
 
