@@ -2,7 +2,7 @@
 
 A devtools-style playground for the [Machine Payments Protocol](https://mpp.dev) on [Tempo](https://tempo.xyz).
 
-Inspect any MPP endpoint, pay with a passkey-based Tempo Wallet, and generate hosted payment links — all in one place.
+Inspect any MPP endpoint, pay with a passkey-based Tempo Wallet, customize payment pages, schedule transactions, and manage access keys — all in one place.
 
 ## Why
 
@@ -33,7 +33,45 @@ Create hosted, shareable payment links without writing a server:
 
 ### HTML Builder (`/html`)
 
-Visual customizer for the payment page UI. _(Coming soon.)_
+Visual theme customizer for mppx payment pages:
+
+- 11 presets (Default, Dark, Tempo Green, Stripe, Purple, Rounded Dark, etc.)
+- 8 color tokens with light/dark pickers
+- 14 Google Font families + custom font URLs
+- Layout controls: font size, border radius, spacing unit
+- Text controls: page title, pay button, badge, expiry prefix
+- Live preview iframe + copy-paste `tempo.charge({ html: {...} })` config
+- Only emits values that differ from defaults
+
+### Custom Script Builder (`/html/custom`)
+
+GUI builder for fully custom payment UIs — replaces the built-in Tempo button with your own layout:
+
+- 6 element types: Button, Text, Image, Container, Divider, Spacer
+- 6 starter templates: Default Tempo, Minimal, Branded, Info Card, Multi-action, Blank
+- Per-element properties + shared style controls (font size/weight, color, alignment, margins)
+- Full page theme controls (same as HTML Builder)
+- Generates real `Html.init('tempo')` scripts using `c.vars.*` for theme consistency
+- Preview uses a mock `Html.init` shell so scripts run as they would in production
+
+### TX Scheduler (`/scheduler`)
+
+Schedule future Tempo token transfers:
+
+- Set recipient, amount, token, broadcast time, optional expiry + memo
+- Two-step flow: sign the tx with your wallet → pay $0.10 via MPP to schedule it
+- Check status by schedule ID, view/cancel/delete scheduled transactions
+- Backend cron worker broadcasts the tx when `validAfter` arrives
+
+### Access Keys (`/access-keys`)
+
+Create, view, and revoke TIP-1011 scoped spending keys for AI agents:
+
+- Chain-enforced spending limits per token + expiry presets (1 / 7 / 30 / 90 days)
+- Live usage bars — `used / total` pulled from the Account Keychain contract
+- Color-coded progress: green < 70% · yellow < 90% · red otherwise
+- Revoke with on-chain confirmation, then pruned from the local store
+- Subscribes to the accounts SDK store so the list updates live
 
 ## Wallet
 
@@ -57,6 +95,7 @@ Network can be switched between testnet (Moderato) and mainnet from the header.
 - [accounts](https://github.com/tempoxyz/accounts) — Tempo Accounts SDK
 - [wagmi](https://wagmi.sh) + [viem](https://viem.sh)
 - Tailwind CSS v4
+- Framer Motion for animations
 
 ## Running locally
 
