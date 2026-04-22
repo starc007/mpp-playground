@@ -39,16 +39,13 @@ async function getAccountsProvider(
 
 export function useAccessKeys() {
   const { address, connector } = useAccount();
-  const [keys, setKeys] = useState<AccessKeyEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [fetchedKeys, setFetchedKeys] = useState<AccessKeyEntry[] | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
+  const isReady = Boolean(connector && address);
+
   useEffect(() => {
-    if (!connector || !address) {
-      setKeys([]);
-      setLoading(false);
-      return;
-    }
+    if (!isReady || !connector || !address) return;
 
     let cancelled = false;
     let unsubscribe: (() => void) | undefined;
@@ -68,12 +65,10 @@ export function useAccessKeys() {
             limits: k.limits,
             keyType: k.keyType,
           }));
-        if (!cancelled) setKeys(mapped);
+        if (!cancelled) setFetchedKeys(mapped);
       };
 
       read();
-      setLoading(false);
-
       // Subscribe to store changes so the list updates live
       unsubscribe = provider.store.subscribe((s) => s.accessKeys, read);
     })();
@@ -81,12 +76,17 @@ export function useAccessKeys() {
     return () => {
       cancelled = true;
       unsubscribe?.();
+      setFetchedKeys(null);
     };
-  }, [connector, address, refreshKey]);
+  }, [isReady, connector, address, refreshKey]);
 
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
-  return { keys, loading, refresh };
+  return {
+    keys: isReady ? (fetchedKeys ?? []) : [],
+    loading: isReady && fetchedKeys === null,
+    refresh,
+  };
 }
 
 export function useCreateAccessKey() {
