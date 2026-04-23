@@ -24,11 +24,24 @@ const tempoTestnet = {
   feeToken: PATHUSD,
 } as typeof tempoModerato;
 
+/**
+ * Pin the wallet dialog host.
+ *
+ * accounts@0.8 flipped the default from `https://wallet.tempo.xyz/embed`
+ * to `https://wallet-next.tempo.xyz/remote`. The payment pages mppx
+ * renders still bundle the old host (html.gen.js), so keys authorized
+ * here can't silently sign over there — the user gets a transaction
+ * approval dialog on every payment instead of the access key kicking in.
+ *
+ * Match mppx's host until upstream ships a rebuilt HTML bundle.
+ */
+const WALLET_HOST = "https://wallet.tempo.xyz/embed";
+
 export function createWagmiConfig(network: Network) {
   if (network === "testnet") {
     return createConfig({
       chains: [tempoTestnet],
-      connectors: [tempoWallet({ testnet: true })],
+      connectors: [tempoWallet({ testnet: true, host: WALLET_HOST })],
       multiInjectedProviderDiscovery: false,
       transports: { [tempoTestnet.id]: http() },
     });
@@ -36,7 +49,7 @@ export function createWagmiConfig(network: Network) {
 
   return createConfig({
     chains: [tempoMainnet],
-    connectors: [tempoWallet({ testnet: false })],
+    connectors: [tempoWallet({ testnet: false, host: WALLET_HOST })],
     multiInjectedProviderDiscovery: false,
     transports: { [tempoMainnet.id]: http() },
   });
