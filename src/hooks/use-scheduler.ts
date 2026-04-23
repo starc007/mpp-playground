@@ -26,10 +26,9 @@ export function useScheduler() {
   const [currency, setCurrency] = useState(TEMPO_CURRENCIES[0].address);
   const [memo, setMemo] = useState("");
 
-  // Schedule timing
-  const defaultAfter = new Date(Date.now() + 5 * 60 * 1000);
-  const [validAfterDate, setValidAfterDate] = useState(
-    toLocalDatetime(defaultAfter),
+  // Schedule timing — lazy init so Date.now() isn't called on every render
+  const [validAfterDate, setValidAfterDate] = useState(() =>
+    toLocalDatetime(new Date(Date.now() + 5 * 60 * 1000)),
   );
   const [validBeforeDate, setValidBeforeDate] = useState("");
 
