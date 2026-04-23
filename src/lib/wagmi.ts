@@ -1,6 +1,5 @@
 import { createConfig, http } from "wagmi";
 import { tempoWallet } from "wagmi/tempo";
-import { Storage } from "accounts";
 import { tempo, tempoModerato } from "viem/chains";
 import type { Network } from "./types";
 import { TEMPO_CURRENCIES } from "./currencies";
@@ -25,33 +24,11 @@ const tempoTestnet = {
   feeToken: PATHUSD,
 } as typeof tempoModerato;
 
-/**
- * Share the accounts SDK's IndexedDB store with mppx's payment UI.
- *
- * By default, wagmi's tempoWallet connector wraps the accounts store in
- * wagmi's own storage (localStorage, prefixed `accounts.xyz.tempo.*`).
- * The payment pages mppx renders create their own `Provider.create()`
- * and use the accounts SDK default — `Storage.idb({ key: 'tempo' })` →
- * IndexedDB `tempo.store`. The two stores never share data.
- *
- * Result: access keys authorized here land in localStorage, never in
- * IDB, so the payment-link page sees `accessKeys: []` and falls back
- * to the transaction-approval dialog instead of silent signing.
- *
- * Force both sides to the same IDB path.
- */
-const sharedStorage = () =>
-  typeof window !== "undefined"
-    ? Storage.idb({ key: "tempo" })
-    : Storage.memory({ key: "tempo" });
-
 export function createWagmiConfig(network: Network) {
   if (network === "testnet") {
     return createConfig({
       chains: [tempoTestnet],
-      connectors: [
-        tempoWallet({ testnet: true, storage: sharedStorage() }),
-      ],
+      connectors: [tempoWallet({ testnet: true })],
       multiInjectedProviderDiscovery: false,
       transports: { [tempoTestnet.id]: http() },
     });
@@ -59,9 +36,7 @@ export function createWagmiConfig(network: Network) {
 
   return createConfig({
     chains: [tempoMainnet],
-    connectors: [
-      tempoWallet({ testnet: false, storage: sharedStorage() }),
-    ],
+    connectors: [tempoWallet({ testnet: false })],
     multiInjectedProviderDiscovery: false,
     transports: { [tempoMainnet.id]: http() },
   });
