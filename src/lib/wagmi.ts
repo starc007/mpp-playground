@@ -1,5 +1,5 @@
 import { createConfig, http } from "wagmi";
-import { tempoWallet } from "accounts/wagmi";
+import { tempoWallet } from "wagmi/tempo";
 import { tempo, tempoModerato } from "viem/chains";
 import type { Network } from "./types";
 import { TEMPO_CURRENCIES } from "./currencies";
