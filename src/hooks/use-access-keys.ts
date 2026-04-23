@@ -214,8 +214,7 @@ export function useRevokeAccessKey() {
         // keep showing it. Remove it manually so the subscribed list updates.
         provider.store.setState((state) => ({
           accessKeys: state.accessKeys.filter(
-            (k) =>
-              k.address.toLowerCase() !== accessKeyAddress.toLowerCase(),
+            (k) => k.address.toLowerCase() !== accessKeyAddress.toLowerCase(),
           ),
         }));
       } catch (e) {

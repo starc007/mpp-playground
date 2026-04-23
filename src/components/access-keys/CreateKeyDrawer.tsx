@@ -20,12 +20,7 @@ import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -130,7 +125,7 @@ export function CreateKeyDrawer({
       }));
 
     try {
-      await createKey({
+      const parms: Parameters<typeof createKey>[0] = {
         expiry,
         limits: validLimits,
         ...(mode === "external" && externalAddress
@@ -139,7 +134,9 @@ export function CreateKeyDrawer({
               keyType: "secp256k1" as const,
             }
           : {}),
-      });
+      };
+      console.log("Creating key with params", parms);
+      await createKey(parms);
 
       if (mode === "external" && generatedPrivateKey) {
         setShowKeyReveal(true);
