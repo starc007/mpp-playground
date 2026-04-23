@@ -1,5 +1,6 @@
 import { createConfig, http } from "wagmi";
 import { tempoWallet } from "wagmi/tempo";
+import { Storage } from "accounts";
 import { tempo, tempoModerato } from "viem/chains";
 import type { Network } from "./types";
 import { TEMPO_CURRENCIES } from "./currencies";
@@ -24,11 +25,32 @@ const tempoTestnet = {
   feeToken: PATHUSD,
 } as typeof tempoModerato;
 
+/**
+ * Share the accounts SDK's IndexedDB store with mppx's payment UI.
+ *
+ * Without this pin, the wagmi tempoWallet connector wraps the accounts
+ * store in wagmi's own storage (localStorage, prefixed
+ * `wagmi.accounts.xyz.tempo.*`). The payment pages mppx renders create
+ * their own Provider.create() with the accounts SDK default —
+ * `Storage.idb({ key: 'tempo' })` → IndexedDB `tempo.store`. Those two
+ * persistence stores never share data, so silent signing on a payment
+ * link falls back to the approval dialog.
+ *
+ * Pinning to the same IDB path lets both sides read the same access
+ * keys. Removing this breaks cross-page silent signing again.
+ */
+const sharedStorage = () =>
+  typeof window !== "undefined"
+    ? Storage.idb({ key: "tempo" })
+    : Storage.memory({ key: "tempo" });
+
 export function createWagmiConfig(network: Network) {
   if (network === "testnet") {
     return createConfig({
       chains: [tempoTestnet],
-      connectors: [tempoWallet({ testnet: true })],
+      connectors: [
+        tempoWallet({ testnet: true, storage: sharedStorage() }),
+      ],
       multiInjectedProviderDiscovery: false,
       transports: { [tempoTestnet.id]: http() },
     });
@@ -36,7 +58,9 @@ export function createWagmiConfig(network: Network) {
 
   return createConfig({
     chains: [tempoMainnet],
-    connectors: [tempoWallet({ testnet: false })],
+    connectors: [
+      tempoWallet({ testnet: false, storage: sharedStorage() }),
+    ],
     multiInjectedProviderDiscovery: false,
     transports: { [tempoMainnet.id]: http() },
   });

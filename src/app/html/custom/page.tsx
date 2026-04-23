@@ -12,7 +12,7 @@ import {
   ChevronUp,
   Type,
   MousePointerClick,
-  Image,
+  Image as ImageIcon,
   BoxSelect,
   Minus,
   Space,
@@ -34,7 +34,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ColorPickerField } from "@/components/color-picker";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   type BuilderElement,
   type ElementType,
@@ -69,7 +68,7 @@ import {
 const ELEMENT_ICONS: Record<ElementType, React.ReactNode> = {
   button: <MousePointerClick className="size-3.5" />,
   text: <Type className="size-3.5" />,
-  image: <Image className="size-3.5" />,
+  image: <ImageIcon className="size-3.5" />,
   container: <BoxSelect className="size-3.5" />,
   divider: <Minus className="size-3.5" />,
   spacer: <Space className="size-3.5" />,
@@ -108,7 +107,6 @@ export default function CustomScriptPage() {
   );
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [previewKey, setPreviewKey] = useState(0);
   const [showScript, setShowScript] = useState(false);
   const [theme, setTheme] = useState<HtmlTheme>({ ...DEFAULT_THEME });
   const [text, setText] = useState<HtmlText>({ ...DEFAULT_TEXT });
@@ -125,8 +123,7 @@ export default function CustomScriptPage() {
     params.set("theme", JSON.stringify(theme));
     params.set("text", JSON.stringify(text));
     return `/api/html-preview/custom?${params.toString()}`;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [script, theme, text, previewKey]);
+  }, [script, theme, text]);
 
   function updateThemeColor(key: string, value: LightDark) {
     setTheme((prev) => ({ ...prev, [key]: value }));
@@ -135,10 +132,6 @@ export default function CustomScriptPage() {
   function applyPreset(name: string) {
     const preset = PRESETS.find((p) => p.name === name);
     if (preset) setTheme({ ...preset.theme });
-  }
-
-  function refreshPreview() {
-    setPreviewKey((k) => k + 1);
   }
 
   function applyTemplate(name: string) {

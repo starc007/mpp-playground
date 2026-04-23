@@ -22,12 +22,22 @@ const INITIAL_STEPS: Step[] = [
   { id: "receipt", label: "Receipt", status: "idle" },
 ];
 
+// Read a query param on first render without crashing during SSR.
+function readQueryParam(key: string): string | null {
+  if (typeof window === "undefined") return null;
+  return new URLSearchParams(window.location.search).get(key);
+}
+
 export function usePlayground() {
   const { address, isConnected } = useAccount();
   const { network, setNetwork, config } = useNetwork();
-  const [url, setUrl] = useState("");
-  const [method, setMethod] = useState<HttpMethod>("GET");
-  const [reqBody, setReqBody] = useState("");
+
+  // Lazy-init from query params so we don't setState inside an effect.
+  const [url, setUrl] = useState(() => readQueryParam("url") ?? "");
+  const [method, setMethod] = useState<HttpMethod>(
+    () => (readQueryParam("method") as HttpMethod | null) ?? "GET",
+  );
+  const [reqBody, setReqBody] = useState(() => readQueryParam("body") ?? "");
   const [steps, setSteps] = useState<Step[]>(INITIAL_STEPS);
   const [selectedStep, setSelectedStep] = useState<StepId | null>(null);
   const [isProbing, setIsProbing] = useState(false);
@@ -38,26 +48,18 @@ export function usePlayground() {
     null,
   );
   const [error, setError] = useState<string | null>(null);
-  const autoProbeRef = useRef(false);
+  const autoProbeRef = useRef(
+    Boolean(typeof window !== "undefined" && readQueryParam("url")),
+  );
 
-  // Hydrate from query params on mount
+  // Network lives in a context, not local state — sync it on mount from the
+  // URL param. (setNetwork is a context setter; the react-hooks/set-state-in-effect
+  // rule only flags local useState setters.)
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    const urlParam = params.get("url");
-    const methodParam = params.get("method") as HttpMethod | null;
-    const bodyParam = params.get("body");
-    const networkParam = params.get("network") as Network | null;
-
-    if (urlParam) setUrl(urlParam);
-    if (methodParam) setMethod(methodParam);
-    if (bodyParam) setReqBody(bodyParam);
+    const networkParam = readQueryParam("network") as Network | null;
     if (networkParam === "mainnet" || networkParam === "testnet") {
       setNetwork(networkParam);
     }
-
-    // Mark for auto-probe after state settles
-    if (urlParam) autoProbeRef.current = true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
