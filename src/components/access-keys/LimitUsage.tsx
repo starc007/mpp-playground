@@ -1,16 +1,22 @@
 "use client";
 
-import { getTokenLabel, formatLimitAmount } from "@/lib/access-keys";
+import {
+  getTokenLabel,
+  formatLimitAmount,
+  formatPeriod,
+} from "@/lib/access-keys";
 import { useRemainingLimit } from "@/hooks/use-access-keys";
 
 export function LimitUsage({
   accessKey,
   token,
   total,
+  period,
 }: {
   accessKey: `0x${string}`;
   token: `0x${string}`;
   total: bigint;
+  period?: number;
 }) {
   const remaining = useRemainingLimit(accessKey, token);
 
@@ -39,10 +45,17 @@ export function LimitUsage({
   const barColor =
     pct >= 90 ? "bg-red-500" : pct >= 70 ? "bg-yellow-500" : "bg-primary";
 
+  const periodLabel = formatPeriod(period);
+
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between text-[11px]">
-        <span className="font-medium text-foreground">{label}</span>
+        <span className="font-medium text-foreground flex items-center gap-1.5">
+          {label}
+          <span className="text-[10px] text-muted-foreground/80 font-normal">
+            {periodLabel}
+          </span>
+        </span>
         <span className="text-muted-foreground tabular-nums">
           {loading ? (
             <span className="text-muted-foreground/60">loading…</span>

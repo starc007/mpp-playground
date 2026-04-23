@@ -14,7 +14,11 @@ interface StoredAccessKey {
   access: `0x${string}`;
   expiry?: number;
   keyType: AccessKeyEntry["keyType"];
-  limits?: Array<{ token: `0x${string}`; limit: bigint }>;
+  limits?: Array<{
+    token: `0x${string}`;
+    limit: bigint;
+    period?: number;
+  }>;
 }
 
 interface ProviderStore {
@@ -103,7 +107,14 @@ export function useCreateAccessKey() {
   const createKey = useCallback(
     async (params: {
       expiry: number;
-      limits?: Array<{ token: `0x${string}`; limit: bigint }>;
+      limits?: Array<{
+        token: `0x${string}`;
+        limit: bigint;
+        period?: number;
+      }>;
+      /** External access key address (caller holds the private key). */
+      externalAddress?: `0x${string}`;
+      keyType?: "secp256k1" | "p256" | "webAuthn";
     }) => {
       setIsPending(true);
       setError(null);
@@ -118,6 +129,12 @@ export function useCreateAccessKey() {
               expiry: params.expiry,
               ...(params.limits && params.limits.length > 0
                 ? { limits: params.limits }
+                : {}),
+              ...(params.externalAddress
+                ? {
+                    address: params.externalAddress,
+                    keyType: params.keyType ?? "secp256k1",
+                  }
                 : {}),
             },
           ],

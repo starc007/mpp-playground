@@ -16,7 +16,12 @@ export interface AccessKeyEntry {
   /** Unix timestamp (seconds) when the key expires */
   expiry?: number;
   /** Spending limits (token + amount as bigint in raw units) */
-  limits?: Array<{ token: `0x${string}`; limit: bigint }>;
+  limits?: Array<{
+    token: `0x${string}`;
+    limit: bigint;
+    /** Period in seconds. Undefined = lifetime (cumulative) limit. */
+    period?: number;
+  }>;
   keyType: "secp256k1" | "p256" | "webAuthn" | "webCrypto";
 }
 
@@ -67,4 +72,37 @@ export const EXPIRY_PRESETS = [
 
 export function expiryFromDays(days: number): number {
   return Math.floor(Date.now() / 1000) + days * 86400;
+}
+
+/** Period presets for per-period spending limits (seconds). */
+export const PERIOD_PRESETS = [
+  { label: "Lifetime", value: "lifetime", seconds: undefined },
+  { label: "Per hour", value: "hour", seconds: 3600 },
+  { label: "Per day", value: "day", seconds: 86400 },
+  { label: "Per week", value: "week", seconds: 604800 },
+  { label: "Per month", value: "month", seconds: 2592000 },
+] as const;
+
+export type PeriodValue = (typeof PERIOD_PRESETS)[number]["value"];
+
+export function formatPeriod(periodSeconds?: number): string {
+  if (!periodSeconds) return "lifetime";
+  const match = PERIOD_PRESETS.find((p) => p.seconds === periodSeconds);
+  if (match) return match.label.replace(/^Per /, "/ ");
+  // Fallback for arbitrary custom periods
+  if (periodSeconds % 86400 === 0) return `/ ${periodSeconds / 86400}d`;
+  if (periodSeconds % 3600 === 0) return `/ ${periodSeconds / 3600}h`;
+  return `/ ${periodSeconds}s`;
+}
+
+export function periodValueToSeconds(value: PeriodValue): number | undefined {
+  return PERIOD_PRESETS.find((p) => p.value === value)?.seconds;
+}
+
+export function secondsToPeriodValue(
+  periodSeconds?: number,
+): PeriodValue {
+  if (!periodSeconds) return "lifetime";
+  const match = PERIOD_PRESETS.find((p) => p.seconds === periodSeconds);
+  return match?.value ?? "lifetime";
 }

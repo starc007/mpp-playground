@@ -100,6 +100,7 @@ export function KeyCard({
                 accessKey={entry.address}
                 token={limit.token}
                 total={limit.limit}
+                period={limit.period}
               />
             ))}
           </div>
