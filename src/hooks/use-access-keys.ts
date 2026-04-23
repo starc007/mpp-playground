@@ -100,7 +100,7 @@ export function useAccessKeys() {
 }
 
 export function useCreateAccessKey() {
-  const { connector } = useAccount();
+  const { address: rootAddress, connector } = useAccount();
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -139,6 +139,41 @@ export function useCreateAccessKey() {
             },
           ],
         });
+
+        // The SDK's dialog adapter only adds the access key to its local
+        // store when it generated the keypair itself (see saveAccessKey
+        // call guarded by `if (accessKey)`). For externally-provided keys
+        // we have to append the entry ourselves so the UI, which reads
+        // from this store, can display the newly-authorized key.
+        if (params.externalAddress && rootAddress) {
+          const keyType = params.keyType ?? "secp256k1";
+          const limits = (params.limits ?? []).map((l) => ({
+            token: l.token,
+            limit: l.limit,
+            ...(l.period !== undefined ? { period: l.period } : {}),
+          }));
+          provider.store.setState((state) => {
+            // Avoid duplicates if the user re-authorizes the same key.
+            const filtered = state.accessKeys.filter(
+              (k) =>
+                k.address.toLowerCase() !==
+                params.externalAddress!.toLowerCase(),
+            );
+            return {
+              accessKeys: [
+                ...filtered,
+                {
+                  address: params.externalAddress!,
+                  access: rootAddress,
+                  expiry: params.expiry,
+                  keyType,
+                  limits,
+                },
+              ],
+            };
+          });
+        }
+
         return result;
       } catch (e) {
         const message =
@@ -149,7 +184,7 @@ export function useCreateAccessKey() {
         setIsPending(false);
       }
     },
-    [connector],
+    [connector, rootAddress],
   );
 
   return { createKey, isPending, error };
