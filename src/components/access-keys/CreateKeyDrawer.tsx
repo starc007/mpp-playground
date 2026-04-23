@@ -176,7 +176,7 @@ export function CreateKeyDrawer({
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-border">
         <div className="flex items-center gap-2.5">
-          <div className="flex items-center justify-center size-8 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 text-primary ring-1 ring-primary/10">
+          <div className="flex items-center justify-center size-8 rounded-xl bg-foreground/5 text-foreground ring-1 ring-foreground/10">
             <KeyRound className="size-4" />
           </div>
           <div>
@@ -190,7 +190,7 @@ export function CreateKeyDrawer({
         </div>
         <button
           onClick={onClose}
-          className="p-1.5 rounded-lg hover:bg-muted/70 text-muted-foreground transition-colors"
+          className="p-1.5 rounded-lg hover:bg-foreground/5 text-muted-foreground transition-colors"
         >
           <X className="size-4" />
         </button>
@@ -198,17 +198,20 @@ export function CreateKeyDrawer({
 
       {/* Body */}
       <div className="px-5 py-5 space-y-6 max-h-[65vh] overflow-y-auto">
-        {/* Mode tabs */}
+        {/* Mode tabs — force column layout (Tabs primitive's
+            data-horizontal:flex-col selector doesn't match the
+            data-orientation attribute it actually sets). */}
         <Tabs
           value={mode}
           onValueChange={(v) => v && setMode(v as KeyMode)}
+          className="flex-col"
         >
-          <TabsList className="w-full grid grid-cols-2">
-            <TabsTrigger value="browser" className="gap-1.5">
+          <TabsList className="w-full grid grid-cols-2 h-9">
+            <TabsTrigger value="browser" className="gap-1.5 text-xs">
               <Globe className="size-3.5" />
               In browser
             </TabsTrigger>
-            <TabsTrigger value="external" className="gap-1.5">
+            <TabsTrigger value="external" className="gap-1.5 text-xs">
               <UserRound className="size-3.5" />
               External agent
             </TabsTrigger>
@@ -252,8 +255,8 @@ export function CreateKeyDrawer({
                 </Button>
               </div>
               {generatedPrivateKey ? (
-                <div className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-500/5 border border-amber-500/20">
-                  <AlertTriangle className="size-3 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <div className="flex items-start gap-2 p-2.5 rounded-lg bg-foreground/3 border border-foreground/10">
+                  <AlertTriangle className="size-3 text-foreground/70 shrink-0 mt-0.5" />
                   <p className="text-[11px] text-muted-foreground leading-relaxed">
                     Keypair generated. After authorizing, you&apos;ll see the
                     private key once — copy it before closing.
@@ -279,8 +282,8 @@ export function CreateKeyDrawer({
                 onClick={() => setExpiryDays(preset.days)}
                 className={`text-xs py-2 rounded-lg border transition-colors ${
                   expiryDays === preset.days
-                    ? "border-primary/50 bg-primary/10 text-primary"
-                    : "border-border hover:border-foreground/20 hover:bg-muted/30"
+                    ? "border-foreground/30 bg-foreground/10 text-foreground"
+                    : "border-border hover:border-foreground/20 hover:bg-foreground/3"
                 }`}
               >
                 {preset.label}
@@ -304,7 +307,7 @@ export function CreateKeyDrawer({
           action={
             <button
               onClick={addLimit}
-              className="text-[11px] text-primary hover:underline flex items-center gap-1"
+              className="text-[11px] text-foreground/80 hover:text-foreground hover:underline flex items-center gap-1"
             >
               <Plus className="size-3" />
               Add token
@@ -469,7 +472,7 @@ function PrivateKeyReveal({
     <>
       <div className="px-5 py-4 border-b border-border">
         <div className="flex items-center gap-2.5 mb-1">
-          <div className="flex items-center justify-center size-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/20">
+          <div className="flex items-center justify-center size-8 rounded-xl bg-foreground/5 text-foreground ring-1 ring-foreground/10">
             <AlertTriangle className="size-4" />
           </div>
           <div>
@@ -530,8 +533,8 @@ function PrivateKeyReveal({
           </div>
         </div>
 
-        <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-500/5 border border-amber-500/20">
-          <AlertTriangle className="size-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+        <div className="flex items-start gap-2 p-3 rounded-xl bg-foreground/3 border border-foreground/10">
+          <AlertTriangle className="size-3.5 text-foreground/70 shrink-0 mt-0.5" />
           <p className="text-[11px] text-muted-foreground leading-relaxed">
             The agent holding this key can spend up to the authorized limits.
             Store it securely — it can&apos;t be recovered.
