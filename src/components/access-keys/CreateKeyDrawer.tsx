@@ -63,7 +63,7 @@ export function CreateKeyDrawer({
       id: "l1",
       token: TEMPO_CURRENCIES[0].address,
       amount: "10",
-      period: "day",
+      period: "lifetime",
     },
   ]);
   const [externalAddress, setExternalAddress] = useState("");
@@ -88,7 +88,7 @@ export function CreateKeyDrawer({
         id: `l${Date.now()}`,
         token: TEMPO_CURRENCIES[0].address,
         amount: "",
-        period: "day",
+        period: "lifetime",
       },
     ]);
   }
@@ -376,6 +376,18 @@ export function CreateKeyDrawer({
             Per-period limits reset on a rolling window. Lifetime caps are
             cumulative.
           </p>
+          <div className="flex items-start gap-2 p-2.5 rounded-lg bg-foreground/3 border border-foreground/10">
+            <AlertTriangle className="size-3 text-foreground/70 shrink-0 mt-0.5" />
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              Use <span className="font-medium text-foreground">Lifetime</span>{" "}
+              if you want the key to silent-sign on payment-link pages.
+              Per-period limits ship in the on-chain schema but mppx&apos;s
+              bundled payment UI strips the{" "}
+              <code className="font-mono">period</code> field before building
+              the tx, so signer recovery fails and the wallet falls back to a
+              manual approval prompt.
+            </p>
+          </div>
         </Section>
 
         {error && (
